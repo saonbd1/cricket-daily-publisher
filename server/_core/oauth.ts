@@ -23,7 +23,9 @@ export function buildOAuthLoginUrl({ portalUrl, appId, redirectUri, nonce }: { p
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/start", (req: Request, res: Response) => {
     const portalUrl = process.env.VITE_OAUTH_PORTAL_URL || "https://manus.im";
-    const appId = process.env.VITE_APP_ID;
+    // Vercel may omit project variables from an older redeploy; this is a public
+    // Manus application identifier, so keep a deployment-safe fallback.
+    const appId = process.env.VITE_APP_ID || "K6DHitLuoyuvswsGGd4wCd";
     if (!appId) {
       res.status(500).json({ error: "OAuth app configuration is missing" });
       return;

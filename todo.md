@@ -38,9 +38,12 @@
 - [ ] Verify additional production dashboard routes beyond `auth.me`, including `publisher.status`, return expected non-500 responses after the final Vercel deployment.
 - [ ] If protected routes require authentication, sign in on production and confirm dashboard data queries succeed without 500 errors.
 - [ ] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
-- [ ] Diagnose and fix the production login button so it launches the configured OAuth flow.
-- [ ] Add regression coverage for the production login launch URL and click handler behavior.
+- [x] Diagnose and fix the production login button so it launches the configured OAuth flow.
+- [x] Add regression coverage for the production login launch URL and click handler behavior.
 - [ ] Deploy the login fix to Vercel and verify the live Sign in button redirects to the OAuth provider.
-- [ ] Add a client-side regression test for `startLogin()` covering the nonce cookie and navigation URL.
+- [ ] Deploy the final OAuth-start fallback fix to Vercel and verify `/api/oauth/start` returns HTTP 302 with the production callback URL.
+- [ ] Save a checkpoint after the final OAuth fallback change and verify the live Sign in button opens the OAuth provider.
+- [x] Add a non-secret runtime fallback for the known Manus OAuth application ID when external Vercel environment injection is unavailable.
+- [x] Add a client-side regression test for `startLogin()` covering the nonce cookie and navigation URL.
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
 - [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.

@@ -458,7 +458,7 @@ function buildOAuthLoginUrl({ portalUrl, appId, redirectUri: redirectUri2, nonce
 function registerOAuthRoutes(app) {
   app.get("/api/oauth/start", (req, res) => {
     const portalUrl = process.env.VITE_OAUTH_PORTAL_URL || "https://manus.im";
-    const appId = process.env.VITE_APP_ID;
+    const appId = process.env.VITE_APP_ID || "K6DHitLuoyuvswsGGd4wCd";
     if (!appId) {
       res.status(500).json({ error: "OAuth app configuration is missing" });
       return;
