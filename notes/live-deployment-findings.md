@@ -30,3 +30,10 @@
 - Vercel now lists `SUPABASE_SERVICE_ROLE_KEY` for Production and Preview, added about two minutes before the latest check.
 - A newer Production redeployment exists (`Redeploy of 2wuFdUXrw`), but its direct health endpoint still returns `{"configured":false,"reachable":false}`.
 - The public alias also returns HTTP 503 with the same response. This indicates either the deployment is not receiving the project variable at runtime or the server bundle is reading a different environment mapping than expected.
+
+## Diagnostic deployment result
+
+- Vercel has now deployed checkpoint `be1e461` at `https://cricket-daily-publisher-p3qyq1u5d-saons-projects-c9a3d307.vercel.app`.
+- Its health endpoint returns `{"urlValid":false,"keyPresent":true,"configured":false,"reachable":false}`.
+- Therefore the service-role key is present in the Vercel runtime; only `SUPABASE_URL` is malformed or contains a dashboard/API URL rather than the project URL.
+- Required format is `https://<project-ref>.supabase.co` (optional trailing slash only). No `/dashboard/...`, `/rest/v1`, quotes, or extra path should be included.

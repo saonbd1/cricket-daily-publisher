@@ -4,6 +4,7 @@ import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorization
 import { checkSupabaseRest, getSupabaseRestConfigStatus } from "../supabase-rest.js";
 import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db.js";
 import { runPublisher } from "./service.js";
+import { fetchFixtures } from "./cricketdata.js";
 import { isValidCronAuthorization } from "./cron-auth.js";
 
 function redirectUri(req: Request) {
@@ -15,6 +16,18 @@ export function registerPublisherRoutes(app: Express) {
   app.get("/api/health/database", async (_req: Request, res: Response) => {
     const health = await checkSupabaseRest();
     return res.status(health.reachable ? 200 : 503).json({ ...getSupabaseRestConfigStatus(), ...health });
+  });
+
+  app.get("/api/health/cricketdata", async (_req: Request, res: Response) => {
+    if (!process.env.CRICKETDATA_API_KEY) {
+      return res.status(503).json({ configured: false, reachable: false, error: "CRICKETDATA_API_KEY is not configured" });
+    }
+    try {
+      const result = await fetchFixtures();
+      return res.json({ configured: true, reachable: true, statusCode: result.statusCode, fixtureCount: result.fixtures.length });
+    } catch (error) {
+      return res.status(503).json({ configured: true, reachable: false, error: error instanceof Error ? error.message : "CricketData request failed" });
+    }
   });
 
   app.get("/api/board", async (_req: Request, res: Response) => {

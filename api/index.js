@@ -1405,6 +1405,17 @@ function registerPublisherRoutes(app) {
     const health = await checkSupabaseRest();
     return res.status(health.reachable ? 200 : 503).json({ ...getSupabaseRestConfigStatus(), ...health });
   });
+  app.get("/api/health/cricketdata", async (_req, res) => {
+    if (!process.env.CRICKETDATA_API_KEY) {
+      return res.status(503).json({ configured: false, reachable: false, error: "CRICKETDATA_API_KEY is not configured" });
+    }
+    try {
+      const result = await fetchFixtures();
+      return res.json({ configured: true, reachable: true, statusCode: result.statusCode, fixtureCount: result.fixtures.length });
+    } catch (error) {
+      return res.status(503).json({ configured: true, reachable: false, error: error instanceof Error ? error.message : "CricketData request failed" });
+    }
+  });
   app.get("/api/board", async (_req, res) => {
     try {
       const boardUrl = await getBoardPostUrl();
