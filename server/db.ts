@@ -6,12 +6,21 @@ import { ENV } from "./_core/env.js";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+function getConnectionString() {
+  const explicit = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+  if (explicit?.startsWith("postgres")) return explicit;
+  if (!ENV.supabaseUrl || !ENV.supabaseDbPassword) return null;
+  const projectRef = new URL(ENV.supabaseUrl).hostname.split(".")[0];
+  const poolerHost = `aws-0-${ENV.supabaseDbRegion}.pooler.supabase.com`;
+  return `postgresql://postgres.${projectRef}:${encodeURIComponent(ENV.supabaseDbPassword)}@${poolerHost}:6543/postgres`;
+}
+
 export async function getDb() {
   if (!_db) {
-    const connectionString = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+    const connectionString = getConnectionString();
     if (!connectionString) return null;
     try {
-      const client = postgres(connectionString, { prepare: false, max: 1 });
+      const client = postgres(connectionString, { prepare: false, max: 1, ssl: "require" });
       _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);

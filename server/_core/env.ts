@@ -10,6 +10,9 @@ export const ENV = {
   cricketDataApiKey: process.env.CRICKETDATA_API_KEY ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseDbPassword: process.env.SUPABASE_DB_PASSWORD ?? "",
+  supabaseDbRegion: process.env.SUPABASE_DB_REGION ?? "ap-northeast-2",
   bloggerBlogId: process.env.BLOGGER_BLOG_ID ?? "",
   bloggerRedirectUri: process.env.BLOGGER_REDIRECT_URI ?? "",
 };

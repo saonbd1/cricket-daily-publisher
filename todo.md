@@ -81,3 +81,11 @@
 - [ ] Add an end-to-end regression test for Google callback followed by authenticated session recognition
 - [ ] Verify protected dashboard data and manual publisher execution after authentication repair
 - [ ] Confirm scheduled publishing configuration and complete final handoff
+- [ ] Diagnose and repair the Blogger OAuth connection failure reported after dashboard authentication
+- [ ] Verify Blogger credential status and complete a real publishing test
+- [ ] Repair production database configuration so Blogger OAuth state and credentials can be stored
+- [x] Add a deployment validation check for the required database connection variable
+- [ ] Re-test Blogger authorization and publisher persistence after the database repair
+- [ ] Deploy the Supabase pooler fallback and verify production dashboard queries no longer hit database connection errors
+- [ ] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
+- [ ] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records

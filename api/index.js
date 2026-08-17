@@ -120,18 +120,29 @@ var ENV = {
   cricketDataApiKey: process.env.CRICKETDATA_API_KEY ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseDbPassword: process.env.SUPABASE_DB_PASSWORD ?? "",
+  supabaseDbRegion: process.env.SUPABASE_DB_REGION ?? "ap-northeast-2",
   bloggerBlogId: process.env.BLOGGER_BLOG_ID ?? "",
   bloggerRedirectUri: process.env.BLOGGER_REDIRECT_URI ?? ""
 };
 
 // server/db.ts
 var _db = null;
+function getConnectionString() {
+  const explicit = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+  if (explicit?.startsWith("postgres")) return explicit;
+  if (!ENV.supabaseUrl || !ENV.supabaseDbPassword) return null;
+  const projectRef = new URL(ENV.supabaseUrl).hostname.split(".")[0];
+  const poolerHost = `aws-0-${ENV.supabaseDbRegion}.pooler.supabase.com`;
+  return `postgresql://postgres.${projectRef}:${encodeURIComponent(ENV.supabaseDbPassword)}@${poolerHost}:6543/postgres`;
+}
 async function getDb() {
   if (!_db) {
-    const connectionString = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+    const connectionString = getConnectionString();
     if (!connectionString) return null;
     try {
-      const client = postgres(connectionString, { prepare: false, max: 1 });
+      const client = postgres(connectionString, { prepare: false, max: 1, ssl: "require" });
       _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
