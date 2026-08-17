@@ -20,3 +20,8 @@ External API verification, Aug 17, 2026:
 - The same official page documents `GET https://api.cricapi.com/v1/match_scorecard?apikey=<APIKEY>&offset=0&id=<id>` for scorecards.
 - Google’s official Blogger API Getting Started page lists REST resources including `https://www.googleapis.com/blogger/v3/users/self/blogs`, `https://www.googleapis.com/blogger/v3/blogs/blogId`, and `https://www.googleapis.com/blogger/v3/blogs/blogId/posts`. Source: https://developers.google.com/blogger/docs/3.0/getting_started
 - The CricketData documentation page `https://cricketdata.org/how-to-use-cricket-data-api.aspx` returned a provider-side ASP.NET session error during retrieval, so endpoint behavior will be handled defensively.
+
+External deployment notes (2026-08-17):
+- Vercel account/team dashboard: https://vercel.com/saons-projects-c9a3d307
+- GitHub repository imported into Vercel flow: https://github.com/saonbd1/cricket-daily-publisher
+- Vercel deployment was submitted and showed Loading... Deploying. No environment-variable values were entered at deployment time.

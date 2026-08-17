@@ -57,7 +57,7 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
   const normalizedName = fixture.tournamentName.trim().toLowerCase().replace(/\s+/g, " ");
-  await db.insert(tournaments).values({ name: fixture.tournamentName, normalizedName }).onDuplicateKeyUpdate({ set: { name: fixture.tournamentName } });
+  await db.insert(tournaments).values({ name: fixture.tournamentName, normalizedName }).onConflictDoUpdate({ target: tournaments.normalizedName, set: { name: fixture.tournamentName, updatedAt: new Date() } });
   const tournament = await db.select().from(tournaments).where(eq(tournaments.normalizedName, normalizedName)).limit(1);
   if (!tournament[0]) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
   await db.insert(fixtures).values({
@@ -73,7 +73,8 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
     lastSyncedAt: new Date(),
-  }).onDuplicateKeyUpdate({
+  }).onConflictDoUpdate({
+    target: fixtures.externalId,
     set: {
       tournamentId: tournament[0].id,
       teamOne: fixture.teamOne,
@@ -108,8 +109,9 @@ export async function listRecentFixtures(limit = 100) {
 export async function createRun(trigger: "scheduled" | "manual") {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  const result = await db.insert(publisherRuns).values({ trigger, status: "running" });
-  return Number(result[0].insertId);
+  const result = await db.insert(publisherRuns).values({ trigger, status: "running" }).returning({ id: publisherRuns.id });
+  if (!result[0]) throw new Error("Unable to create publisher run");
+  return result[0].id;
 }
 
 export async function finishRun(id: number, values: Partial<typeof publisherRuns.$inferInsert>) {

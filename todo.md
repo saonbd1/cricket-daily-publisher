@@ -24,3 +24,10 @@
 - [x] Add a published-post count metric to the dashboard.
 - [x] Extend run history with API/Blogger response codes and created or updated post URLs.
 - [x] Add Vitest coverage for duplicate prevention, status mapping, and create/update publishing behavior.
+
+- [x] Assess Supabase connection mode and whether the existing MySQL/Drizzle schema can be reused without migration risk.
+- [x] Add Vercel-compatible backend entrypoints and deployment configuration.
+- [x] Add Supabase/Vercel environment-secret documentation and validation tests.
+- [ ] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
+- [ ] Update Blogger OAuth redirect URI for the chosen Vercel domain.
+- [x] Run tests and save an external-hosting checkpoint.
