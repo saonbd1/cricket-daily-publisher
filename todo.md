@@ -90,3 +90,15 @@
 - [ ] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
 - [ ] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records
 - [ ] Add a non-secret production health check for database configuration and connectivity diagnostics
+- [ ] Handle malformed Supabase URL configuration without an unhandled production exception
+- [ ] Correct the Vercel `SUPABASE_URL` value and verify the database health endpoint reaches Supabase
+- [ ] Prevent a stale `SUPABASE_DB_URL` from overriding the current Supabase URL/password fallback
+- [ ] Add regression coverage for database connection-string precedence after password rotation
+- [x] Replace direct PostgreSQL/Drizzle persistence with Supabase REST persistence using the existing service-role connection
+- [ ] Preserve user, publisher settings, fixtures, tournaments, and run-history behavior through the REST adapter
+- [x] Add REST adapter tests and remove the database-password requirement from deployment guidance
+- [x] Add integration coverage for REST-backed user, settings, fixture/tournament, and run-history operations
+- [x] Restore and test owner/admin role preservation in REST user upserts
+- [ ] Verify the REST tournament join and dashboard fixture shape against the live Supabase schema
+- [ ] Verify at least one real published fixture returns its embedded tournament object and appears in the production dashboard
+- [ ] Verify live dashboard, Blogger OAuth, and manual publishing after the migration

@@ -11,6 +11,7 @@ export const ENV = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   supabaseDbPassword: process.env.SUPABASE_DB_PASSWORD ?? "",
   supabaseDbRegion: process.env.SUPABASE_DB_REGION ?? "ap-northeast-2",
   bloggerBlogId: process.env.BLOGGER_BLOG_ID ?? "",

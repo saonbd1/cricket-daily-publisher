@@ -1,60 +1,54 @@
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
-import { InsertUser, users } from "../drizzle/schema.js";
+import type { InsertUser, User } from "../drizzle/schema.js";
 import { ENV } from "./_core/env.js";
+import { supabaseRest } from "./supabase-rest.js";
 
-let _db: ReturnType<typeof drizzle> | null = null;
-
-function getConnectionString() {
-  const explicit = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
-  if (explicit?.startsWith("postgres")) return explicit;
-  if (!ENV.supabaseUrl || !ENV.supabaseDbPassword) return null;
-  const projectRef = new URL(ENV.supabaseUrl).hostname.split(".")[0];
-  const poolerHost = `aws-0-${ENV.supabaseDbRegion}.pooler.supabase.com`;
-  return `postgresql://postgres.${projectRef}:${encodeURIComponent(ENV.supabaseDbPassword)}@${poolerHost}:6543/postgres`;
+export function buildSupabasePoolerConnectionString(
+  supabaseUrl: string | undefined,
+  password: string | undefined,
+  region: string,
+) {
+  if (!supabaseUrl || !password) return null;
+  try {
+    const parsed = new URL(supabaseUrl.trim());
+    if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".supabase.co")) return null;
+    const projectRef = parsed.hostname.split(".")[0];
+    if (!projectRef) return null;
+    const poolerHost = `aws-0-${region}.pooler.supabase.com`;
+    return `postgresql://postgres.${projectRef}:${encodeURIComponent(password)}@${poolerHost}:6543/postgres`;
+  } catch {
+    return null;
+  }
 }
 
-export async function getDb() {
-  if (!_db) {
-    const connectionString = getConnectionString();
-    if (!connectionString) return null;
-    try {
-      const client = postgres(connectionString, { prepare: false, max: 1, ssl: "require" });
-      _db = drizzle(client);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+export function buildUserUpsertValues(user: InsertUser, ownerOpenId = ENV.ownerOpenId) {
+  if (!user.openId) throw new Error("User openId is required for upsert");
+  const values: Record<string, unknown> = {
+    openId: user.openId,
+    lastSignedIn: (user.lastSignedIn ?? new Date()).toISOString(),
+  };
+  for (const field of ["name", "email", "loginMethod"] as const) {
+    if (user[field] !== undefined) values[field] = user[field] ?? null;
   }
-  return _db;
+  if (user.role !== undefined || user.openId === ownerOpenId) {
+    values.role = user.role ?? "admin";
+  }
+  return values;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-  const values: InsertUser = { openId: user.openId, lastSignedIn: user.lastSignedIn ?? new Date() };
-  const updateSet: Record<string, unknown> = { lastSignedIn: values.lastSignedIn };
-  for (const field of ["name", "email", "loginMethod"] as const) {
-    if (user[field] !== undefined) {
-      values[field] = user[field] ?? null;
-      updateSet[field] = values[field];
-    }
-  }
-  if (user.role !== undefined || user.openId === ENV.ownerOpenId) {
-    values.role = user.role ?? "admin";
-    updateSet.role = values.role;
-  }
-  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+  const values = buildUserUpsertValues(user);
+
+  await supabaseRest<User[]>("users", {
+    method: "POST",
+    query: { on_conflict: "openId" },
+    body: [values],
+    prefer: "resolution=merge-duplicates,return=representation",
+  });
 }
 
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result[0];
+export async function getUserByOpenId(openId: string): Promise<User | undefined> {
+  const rows = await supabaseRest<User[]>("users", {
+    query: { select: "*", openId: `eq.${openId}`, limit: 1 },
+  });
+  return rows[0];
 }

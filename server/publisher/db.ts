@@ -1,141 +1,168 @@
-import { and, desc, eq } from "drizzle-orm";
-import { fixtures, publisherRuns, publisherSettings, tournaments } from "../../drizzle/schema.js";
-import { getDb } from "../db.js";
+import type { Fixture, PublisherRun, PublisherSettings, Tournament } from "../../drizzle/schema.js";
+import { supabaseRest } from "../supabase-rest.js";
 import type { NormalizedFixture } from "./normalization.js";
 
 export const DEFAULT_BLOG_URL = "https://watchnowcricket.blogspot.com";
 
+type FixtureWithTournament = { fixture: Fixture; tournament: Tournament };
+
+async function getSettingsRows(query: Record<string, string | number | undefined> = {}) {
+  return supabaseRest<PublisherSettings[]>("publisher_settings", {
+    query: { select: "*", limit: 1, ...query },
+  });
+}
+
 export async function getOrCreateSettings() {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const existing = await db.select().from(publisherSettings).limit(1);
+  const existing = await getSettingsRows();
   if (existing[0]) return existing[0];
-  await db.insert(publisherSettings).values({ blogId: "pending", blogUrl: DEFAULT_BLOG_URL });
-  const created = await db.select().from(publisherSettings).limit(1);
+  const created = await supabaseRest<PublisherSettings[]>("publisher_settings", {
+    method: "POST",
+    body: [{ blogId: "pending", blogUrl: DEFAULT_BLOG_URL }],
+    prefer: "return=representation",
+  });
   if (!created[0]) throw new Error("Unable to create publisher settings");
   return created[0];
 }
 
 export async function getSettingsByTaskUid(taskUid: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const rows = await db.select().from(publisherSettings).where(eq(publisherSettings.scheduleCronTaskUid, taskUid)).limit(1);
+  const rows = await getSettingsRows({ scheduleCronTaskUid: `eq.${taskUid}` });
   return rows[0];
 }
 
+async function updateSettings(id: number, values: Record<string, unknown>) {
+  await supabaseRest<PublisherSettings[]>("publisher_settings", {
+    method: "PATCH",
+    query: { id: `eq.${id}` },
+    body: values,
+    prefer: "return=representation",
+  });
+}
+
 export async function saveScheduleTaskUid(taskUid: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ scheduleCronTaskUid: taskUid }).where(eq(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { scheduleCronTaskUid: taskUid, updatedAt: new Date().toISOString() });
 }
 
 export async function saveBoardPostUrl(boardPostUrl: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ boardPostUrl }).where(eq(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { boardPostUrl, updatedAt: new Date().toISOString() });
 }
 
 export async function getBoardPostUrl() {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
   return settings.boardPostUrl;
 }
 
 export async function saveOAuthState(state: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ oauthState: state }).where(eq(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { oauthState: state, updatedAt: new Date().toISOString() });
 }
 
 export async function consumeOAuthState(state: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
   if (!settings.oauthState || settings.oauthState !== state) return false;
-  await db.update(publisherSettings).set({ oauthState: null }).where(eq(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { oauthState: null, updatedAt: new Date().toISOString() });
   return true;
 }
 
 export async function saveBloggerCredentials(refreshToken: string, blogId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ googleRefreshToken: refreshToken, blogId }).where(eq(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, {
+    googleRefreshToken: refreshToken,
+    blogId,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const normalizedName = fixture.tournamentName.trim().toLowerCase().replace(/\s+/g, " ");
-  await db.insert(tournaments).values({ name: fixture.tournamentName, normalizedName }).onConflictDoUpdate({ target: tournaments.normalizedName, set: { name: fixture.tournamentName, updatedAt: new Date() } });
-  const tournament = await db.select().from(tournaments).where(eq(tournaments.normalizedName, normalizedName)).limit(1);
-  if (!tournament[0]) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
-  await db.insert(fixtures).values({
+  const tournamentRows = await supabaseRest<Tournament[]>("tournaments", {
+    method: "POST",
+    query: { on_conflict: "normalizedName" },
+    body: [{ name: fixture.tournamentName, normalizedName }],
+    prefer: "resolution=merge-duplicates,return=representation",
+  });
+  const tournament = tournamentRows[0];
+  if (!tournament) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
+
+  const values = {
     externalId: fixture.externalId,
-    tournamentId: tournament[0].id,
+    tournamentId: tournament.id,
     teamOne: fixture.teamOne,
     teamTwo: fixture.teamTwo,
     venue: fixture.venue,
-    startTimeUtc: fixture.startTimeUtc,
+    startTimeUtc: fixture.startTimeUtc.toISOString(),
     localDateGmt6: fixture.localDateGmt6,
     localTimeGmt6: fixture.localTimeGmt6,
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
-    lastSyncedAt: new Date(),
-  }).onConflictDoUpdate({
-    target: fixtures.externalId,
-    set: {
-      tournamentId: tournament[0].id,
-      teamOne: fixture.teamOne,
-      teamTwo: fixture.teamTwo,
-      venue: fixture.venue,
-      startTimeUtc: fixture.startTimeUtc,
-      localDateGmt6: fixture.localDateGmt6,
-      localTimeGmt6: fixture.localTimeGmt6,
-      status: fixture.status,
-      scoreSummary: fixture.scoreSummary,
-      matchUrl: fixture.matchUrl,
-      lastSyncedAt: new Date(),
+    lastSyncedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const savedRows = await supabaseRest<Fixture[]>("fixtures", {
+    method: "POST",
+    query: { on_conflict: "externalId" },
+    body: [values],
+    prefer: "resolution=merge-duplicates,return=representation",
+  });
+  const saved = savedRows[0];
+  if (!saved) throw new Error(`Unable to save fixture ${fixture.externalId}`);
+  return saved;
+}
+
+export async function saveBloggerPublication(
+  fixtureId: number,
+  postId: string,
+  postUrl: string | null,
+  firstPublishedAt?: Date,
+) {
+  await supabaseRest<Fixture[]>("fixtures", {
+    method: "PATCH",
+    query: { id: `eq.${fixtureId}` },
+    body: {
+      bloggerPostId: postId,
+      bloggerPostUrl: postUrl,
+      firstPublishedAt: firstPublishedAt?.toISOString() ?? new Date().toISOString(),
+      lastPublishedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    prefer: "return=representation",
+  });
+}
+
+export async function listRecentFixtures(limit = 100): Promise<FixtureWithTournament[]> {
+  const rows = await supabaseRest<Array<Fixture & { tournament?: Tournament }>>("fixtures", {
+    query: {
+      select: "*,tournament:tournaments(*)",
+      order: "startTimeUtc.desc",
+      limit,
     },
   });
-  const saved = await db.select().from(fixtures).where(eq(fixtures.externalId, fixture.externalId)).limit(1);
-  if (!saved[0]) throw new Error(`Unable to save fixture ${fixture.externalId}`);
-  return saved[0];
-}
-
-export async function saveBloggerPublication(fixtureId: number, postId: string, postUrl: string | null, firstPublishedAt?: Date) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  await db.update(fixtures).set({ bloggerPostId: postId, bloggerPostUrl: postUrl, firstPublishedAt: firstPublishedAt ?? new Date(), lastPublishedAt: new Date() }).where(eq(fixtures.id, fixtureId));
-}
-
-export async function listRecentFixtures(limit = 100) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select({ fixture: fixtures, tournament: tournaments }).from(fixtures).innerJoin(tournaments, eq(fixtures.tournamentId, tournaments.id)).orderBy(desc(fixtures.startTimeUtc)).limit(limit);
+  return rows.flatMap((row) => (row.tournament ? [{ fixture: row, tournament: row.tournament }] : []));
 }
 
 export async function createRun(trigger: "scheduled" | "manual") {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const result = await db.insert(publisherRuns).values({ trigger, status: "running" }).returning({ id: publisherRuns.id });
-  if (!result[0]) throw new Error("Unable to create publisher run");
-  return result[0].id;
+  const rows = await supabaseRest<PublisherRun[]>("publisher_runs", {
+    method: "POST",
+    body: [{ trigger, status: "running" }],
+    prefer: "return=representation",
+  });
+  if (!rows[0]) throw new Error("Unable to create publisher run");
+  return rows[0].id;
 }
 
-export async function finishRun(id: number, values: Partial<typeof publisherRuns.$inferInsert>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  await db.update(publisherRuns).set({ ...values, finishedAt: new Date() }).where(eq(publisherRuns.id, id));
+export async function finishRun(id: number, values: Partial<PublisherRun>) {
+  await supabaseRest<PublisherRun[]>("publisher_runs", {
+    method: "PATCH",
+    query: { id: `eq.${id}` },
+    body: { ...values, finishedAt: new Date().toISOString() },
+    prefer: "return=representation",
+  });
 }
 
 export async function listRuns(limit = 20) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(publisherRuns).orderBy(desc(publisherRuns.startedAt)).limit(limit);
+  return supabaseRest<PublisherRun[]>("publisher_runs", {
+    query: { select: "*", order: "startedAt.desc", limit },
+  });
 }

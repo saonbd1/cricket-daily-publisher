@@ -1,8 +1,7 @@
 import type { Express, Request, Response } from "express";
-import { sql } from "drizzle-orm";
 import { sdk } from "../_core/sdk.js";
 import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger.js";
-import { getDb } from "../db.js";
+import { checkSupabaseRest } from "../supabase-rest.js";
 import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db.js";
 import { runPublisher } from "./service.js";
 import { isValidCronAuthorization } from "./cron-auth.js";
@@ -14,15 +13,8 @@ function redirectUri(req: Request) {
 
 export function registerPublisherRoutes(app: Express) {
   app.get("/api/health/database", async (_req: Request, res: Response) => {
-    const db = await getDb();
-    if (!db) return res.json({ configured: false, reachable: false });
-    try {
-      await db.execute(sql`select 1`);
-      return res.json({ configured: true, reachable: true });
-    } catch (error) {
-      console.error("[Database] Health check failed", error);
-      return res.status(503).json({ configured: true, reachable: false });
-    }
+    const health = await checkSupabaseRest();
+    return res.status(health.reachable ? 200 : 503).json(health);
   });
 
   app.get("/api/board", async (_req: Request, res: Response) => {

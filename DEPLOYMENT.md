@@ -1,15 +1,14 @@
 # Cricket Daily Publisher: Supabase and Vercel Deployment
 
-This service collects CricketData.org fixtures, normalizes them to Bangladesh Standard Time (GMT+6), and publishes idempotent Blogger match posts. The production API can run as a Vercel serverless function backed by the Supabase PostgreSQL project.
+This service collects CricketData.org fixtures, normalizes them to Bangladesh Standard Time (GMT+6), and publishes idempotent Blogger match posts. The production API runs as a Vercel serverless function backed by the Supabase project’s REST API, using the server-only service-role key.
+
 
 ## Required server environment variables
 
 | Variable | Purpose | Where to obtain it | Exposure |
 |---|---|---|---|
-| `SUPABASE_URL` | Supabase project REST/database endpoint | Supabase Project Settings → API | Server-only; never use as a client `VITE_` variable |
+| `SUPABASE_URL` | Supabase project REST endpoint | Supabase Project Settings → API | Server-only; never use as a client `VITE_` variable |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side Supabase API access | Supabase Project Settings → API | Highly sensitive; server-only, never expose in browser code |
-| `SUPABASE_DB_PASSWORD` | PostgreSQL pooler access when no database URI is available | Supabase Project Settings → Database → Database password | Highly sensitive; server-only |
-| `SUPABASE_DB_REGION` | Supabase pooler region; defaults to `ap-northeast-2` for the active Cricket Data Publisher project | Supabase project region | Server-only |
 | `CRICKETDATA_API_KEY` | CricketData.org fixture collection | CricketData.org account/API settings | Server-only |
 | `GOOGLE_CLIENT_ID` | Google OAuth Web application client ID | Google Cloud Console → APIs & Services → Credentials | Server-only for this backend |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Web application client secret | Google Cloud Console → APIs & Services → Credentials | Highly sensitive; server-only |
@@ -18,7 +17,7 @@ This service collects CricketData.org fixtures, normalizes them to Bangladesh St
 | `JWT_SECRET` | Session signing secret used by the application shell | Project secret management | Highly sensitive; server-only |
 | `CRON_SECRET` | Bearer secret used by the Vercel Cron publisher endpoint | Generate a random server secret and add it to Vercel | Highly sensitive; server-only |
 
-Do not commit `.env` files, database passwords, service-role keys, OAuth client secrets, or API keys. The application prefers a PostgreSQL URI in `SUPABASE_DB_URL` or `DATABASE_URL`; when those are absent, it constructs the serverless pooler URI from `SUPABASE_URL`, `SUPABASE_DB_PASSWORD`, and `SUPABASE_DB_REGION`. Add the required values in Vercel Project Settings → Environment Variables for Production and Preview as appropriate, then redeploy.
+Do not commit `.env` files, service-role keys, OAuth client secrets, or API keys. The application stores and reads application data through Supabase REST using `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; it does not require a PostgreSQL connection string or database password. Add the required values in Vercel Project Settings → Environment Variables for Production and Preview as appropriate, then redeploy.
 
 ## Vercel routes
 

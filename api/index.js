@@ -29,84 +29,6 @@ var decodeOAuthState = (state) => {
 import { randomUUID } from "node:crypto";
 import { parse as parseCookieHeader2 } from "cookie";
 
-// server/db.ts
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
-
-// drizzle/schema.ts
-import { integer, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
-var userRoleEnum = pgEnum("user_role", ["user", "admin"]);
-var fixtureStatusEnum = pgEnum("fixture_status", ["scheduled", "live", "completed", "postponed", "cancelled"]);
-var runTriggerEnum = pgEnum("run_trigger", ["scheduled", "manual"]);
-var runStatusEnum = pgEnum("run_status", ["running", "success", "partial", "failed"]);
-var users = pgTable("users", {
-  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: userRoleEnum("role").default("user").notNull(),
-  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn", { withTimezone: true }).defaultNow().notNull()
-});
-var tournaments = pgTable("tournaments", {
-  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull().unique(),
-  normalizedName: varchar("normalizedName", { length: 255 }).notNull().unique(),
-  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull()
-});
-var fixtures = pgTable("fixtures", {
-  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
-  externalId: varchar("externalId", { length: 128 }).notNull().unique(),
-  tournamentId: integer("tournamentId").notNull(),
-  teamOne: varchar("teamOne", { length: 160 }).notNull(),
-  teamTwo: varchar("teamTwo", { length: 160 }).notNull(),
-  venue: varchar("venue", { length: 255 }),
-  startTimeUtc: timestamp("startTimeUtc", { withTimezone: true }).notNull(),
-  localDateGmt6: varchar("localDateGmt6", { length: 10 }).notNull(),
-  localTimeGmt6: varchar("localTimeGmt6", { length: 5 }).notNull(),
-  status: fixtureStatusEnum("status").default("scheduled").notNull(),
-  scoreSummary: text("scoreSummary"),
-  matchUrl: text("matchUrl"),
-  bloggerPostId: varchar("bloggerPostId", { length: 128 }),
-  bloggerPostUrl: text("bloggerPostUrl"),
-  firstPublishedAt: timestamp("firstPublishedAt", { withTimezone: true }),
-  lastPublishedAt: timestamp("lastPublishedAt", { withTimezone: true }),
-  lastSyncedAt: timestamp("lastSyncedAt", { withTimezone: true }),
-  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull()
-});
-var publisherSettings = pgTable("publisher_settings", {
-  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
-  blogId: varchar("blogId", { length: 128 }).notNull().unique(),
-  blogUrl: text("blogUrl").notNull(),
-  boardPostUrl: text("boardPostUrl"),
-  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
-  googleRefreshToken: text("googleRefreshToken"),
-  oauthState: varchar("oauthState", { length: 128 }),
-  lastRunAt: timestamp("lastRunAt", { withTimezone: true }),
-  lastRunStatus: runStatusEnum("lastRunStatus"),
-  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull()
-});
-var publisherRuns = pgTable("publisher_runs", {
-  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
-  trigger: runTriggerEnum("trigger").notNull(),
-  status: runStatusEnum("status").notNull(),
-  startedAt: timestamp("startedAt", { withTimezone: true }).defaultNow().notNull(),
-  finishedAt: timestamp("finishedAt", { withTimezone: true }),
-  fixturesFetched: integer("fixturesFetched").default(0).notNull(),
-  postsCreated: integer("postsCreated").default(0).notNull(),
-  postsUpdated: integer("postsUpdated").default(0).notNull(),
-  apiStatusCode: integer("apiStatusCode"),
-  bloggerStatusCode: integer("bloggerStatusCode"),
-  postUrls: text("postUrls"),
-  errorMessage: text("errorMessage")
-});
-
 // server/_core/env.ts
 var ENV = {
   appId: process.env.VITE_APP_ID ?? "",
@@ -121,62 +43,86 @@ var ENV = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   supabaseDbPassword: process.env.SUPABASE_DB_PASSWORD ?? "",
   supabaseDbRegion: process.env.SUPABASE_DB_REGION ?? "ap-northeast-2",
   bloggerBlogId: process.env.BLOGGER_BLOG_ID ?? "",
   bloggerRedirectUri: process.env.BLOGGER_REDIRECT_URI ?? ""
 };
 
-// server/db.ts
-var _db = null;
-function getConnectionString() {
-  const explicit = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
-  if (explicit?.startsWith("postgres")) return explicit;
-  if (!ENV.supabaseUrl || !ENV.supabaseDbPassword) return null;
-  const projectRef = new URL(ENV.supabaseUrl).hostname.split(".")[0];
-  const poolerHost = `aws-0-${ENV.supabaseDbRegion}.pooler.supabase.com`;
-  return `postgresql://postgres.${projectRef}:${encodeURIComponent(ENV.supabaseDbPassword)}@${poolerHost}:6543/postgres`;
+// server/supabase-rest.ts
+function getRestBaseUrl() {
+  const url = ENV.supabaseUrl.trim().replace(/\/$/, "");
+  const key = ENV.supabaseServiceRoleKey;
+  if (!/^https:\/\/[^/]+\.supabase\.co$/.test(url) || !key) return null;
+  return `${url}/rest/v1`;
 }
-async function getDb() {
-  if (!_db) {
-    const connectionString = getConnectionString();
-    if (!connectionString) return null;
-    try {
-      const client = postgres(connectionString, { prepare: false, max: 1, ssl: "require" });
-      _db = drizzle(client);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+function isSupabaseRestConfigured() {
+  return getRestBaseUrl() !== null;
+}
+async function supabaseRest(table, options = {}) {
+  const baseUrl = getRestBaseUrl();
+  if (!baseUrl) throw new Error("Supabase REST is not configured");
+  const url = new URL(`${baseUrl}/${table}`);
+  for (const [key, value] of Object.entries(options.query ?? {})) {
+    if (value !== void 0) url.searchParams.set(key, String(value));
   }
-  return _db;
+  const response = await fetch(url, {
+    method: options.method ?? "GET",
+    headers: {
+      apikey: ENV.supabaseServiceRoleKey,
+      Authorization: `Bearer ${ENV.supabaseServiceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: options.prefer ?? "return=representation"
+    },
+    body: options.body === void 0 ? void 0 : JSON.stringify(options.body)
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase REST ${response.status}: ${detail.slice(0, 300)}`);
+  }
+  if (response.status === 204) return void 0;
+  return await response.json();
+}
+async function checkSupabaseRest() {
+  if (!isSupabaseRestConfigured()) return { configured: false, reachable: false };
+  try {
+    await supabaseRest("users", { query: { select: "id", limit: 1 } });
+    return { configured: true, reachable: true };
+  } catch {
+    return { configured: true, reachable: false };
+  }
+}
+
+// server/db.ts
+function buildUserUpsertValues(user, ownerOpenId = ENV.ownerOpenId) {
+  if (!user.openId) throw new Error("User openId is required for upsert");
+  const values = {
+    openId: user.openId,
+    lastSignedIn: (user.lastSignedIn ?? /* @__PURE__ */ new Date()).toISOString()
+  };
+  for (const field of ["name", "email", "loginMethod"]) {
+    if (user[field] !== void 0) values[field] = user[field] ?? null;
+  }
+  if (user.role !== void 0 || user.openId === ownerOpenId) {
+    values.role = user.role ?? "admin";
+  }
+  return values;
 }
 async function upsertUser(user) {
-  if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-  const values = { openId: user.openId, lastSignedIn: user.lastSignedIn ?? /* @__PURE__ */ new Date() };
-  const updateSet = { lastSignedIn: values.lastSignedIn };
-  for (const field of ["name", "email", "loginMethod"]) {
-    if (user[field] !== void 0) {
-      values[field] = user[field] ?? null;
-      updateSet[field] = values[field];
-    }
-  }
-  if (user.role !== void 0 || user.openId === ENV.ownerOpenId) {
-    values.role = user.role ?? "admin";
-    updateSet.role = values.role;
-  }
-  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+  const values = buildUserUpsertValues(user);
+  await supabaseRest("users", {
+    method: "POST",
+    query: { on_conflict: "openId" },
+    body: [values],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
 }
 async function getUserByOpenId(openId) {
-  const db = await getDb();
-  if (!db) return void 0;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result[0];
+  const rows = await supabaseRest("users", {
+    query: { select: "*", openId: `eq.${openId}`, limit: 1 }
+  });
+  return rows[0];
 }
 
 // server/_core/cookies.ts
@@ -881,128 +827,145 @@ var systemRouter = router({
 });
 
 // server/publisher/db.ts
-import { desc, eq as eq2 } from "drizzle-orm";
 var DEFAULT_BLOG_URL = "https://watchnowcricket.blogspot.com";
+async function getSettingsRows(query = {}) {
+  return supabaseRest("publisher_settings", {
+    query: { select: "*", limit: 1, ...query }
+  });
+}
 async function getOrCreateSettings() {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const existing = await db.select().from(publisherSettings).limit(1);
+  const existing = await getSettingsRows();
   if (existing[0]) return existing[0];
-  await db.insert(publisherSettings).values({ blogId: "pending", blogUrl: DEFAULT_BLOG_URL });
-  const created = await db.select().from(publisherSettings).limit(1);
+  const created = await supabaseRest("publisher_settings", {
+    method: "POST",
+    body: [{ blogId: "pending", blogUrl: DEFAULT_BLOG_URL }],
+    prefer: "return=representation"
+  });
   if (!created[0]) throw new Error("Unable to create publisher settings");
   return created[0];
 }
 async function getSettingsByTaskUid(taskUid) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const rows = await db.select().from(publisherSettings).where(eq2(publisherSettings.scheduleCronTaskUid, taskUid)).limit(1);
+  const rows = await getSettingsRows({ scheduleCronTaskUid: `eq.${taskUid}` });
   return rows[0];
 }
+async function updateSettings(id, values) {
+  await supabaseRest("publisher_settings", {
+    method: "PATCH",
+    query: { id: `eq.${id}` },
+    body: values,
+    prefer: "return=representation"
+  });
+}
 async function saveScheduleTaskUid(taskUid) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ scheduleCronTaskUid: taskUid }).where(eq2(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { scheduleCronTaskUid: taskUid, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
 }
 async function saveBoardPostUrl(boardPostUrl) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ boardPostUrl }).where(eq2(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { boardPostUrl, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
 }
 async function getBoardPostUrl() {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
   return settings.boardPostUrl;
 }
 async function saveOAuthState(state) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ oauthState: state }).where(eq2(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { oauthState: state, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
 }
 async function consumeOAuthState(state) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
   if (!settings.oauthState || settings.oauthState !== state) return false;
-  await db.update(publisherSettings).set({ oauthState: null }).where(eq2(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, { oauthState: null, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
   return true;
 }
 async function saveBloggerCredentials(refreshToken, blogId) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const settings = await getOrCreateSettings();
-  await db.update(publisherSettings).set({ googleRefreshToken: refreshToken, blogId }).where(eq2(publisherSettings.id, settings.id));
+  await updateSettings(settings.id, {
+    googleRefreshToken: refreshToken,
+    blogId,
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
 }
 async function upsertNormalizedFixture(fixture) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
   const normalizedName = fixture.tournamentName.trim().toLowerCase().replace(/\s+/g, " ");
-  await db.insert(tournaments).values({ name: fixture.tournamentName, normalizedName }).onConflictDoUpdate({ target: tournaments.normalizedName, set: { name: fixture.tournamentName, updatedAt: /* @__PURE__ */ new Date() } });
-  const tournament = await db.select().from(tournaments).where(eq2(tournaments.normalizedName, normalizedName)).limit(1);
-  if (!tournament[0]) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
-  await db.insert(fixtures).values({
+  const tournamentRows = await supabaseRest("tournaments", {
+    method: "POST",
+    query: { on_conflict: "normalizedName" },
+    body: [{ name: fixture.tournamentName, normalizedName }],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+  const tournament = tournamentRows[0];
+  if (!tournament) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
+  const values = {
     externalId: fixture.externalId,
-    tournamentId: tournament[0].id,
+    tournamentId: tournament.id,
     teamOne: fixture.teamOne,
     teamTwo: fixture.teamTwo,
     venue: fixture.venue,
-    startTimeUtc: fixture.startTimeUtc,
+    startTimeUtc: fixture.startTimeUtc.toISOString(),
     localDateGmt6: fixture.localDateGmt6,
     localTimeGmt6: fixture.localTimeGmt6,
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
-    lastSyncedAt: /* @__PURE__ */ new Date()
-  }).onConflictDoUpdate({
-    target: fixtures.externalId,
-    set: {
-      tournamentId: tournament[0].id,
-      teamOne: fixture.teamOne,
-      teamTwo: fixture.teamTwo,
-      venue: fixture.venue,
-      startTimeUtc: fixture.startTimeUtc,
-      localDateGmt6: fixture.localDateGmt6,
-      localTimeGmt6: fixture.localTimeGmt6,
-      status: fixture.status,
-      scoreSummary: fixture.scoreSummary,
-      matchUrl: fixture.matchUrl,
-      lastSyncedAt: /* @__PURE__ */ new Date()
-    }
+    lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  const savedRows = await supabaseRest("fixtures", {
+    method: "POST",
+    query: { on_conflict: "externalId" },
+    body: [values],
+    prefer: "resolution=merge-duplicates,return=representation"
   });
-  const saved = await db.select().from(fixtures).where(eq2(fixtures.externalId, fixture.externalId)).limit(1);
-  if (!saved[0]) throw new Error(`Unable to save fixture ${fixture.externalId}`);
-  return saved[0];
+  const saved = savedRows[0];
+  if (!saved) throw new Error(`Unable to save fixture ${fixture.externalId}`);
+  return saved;
 }
 async function saveBloggerPublication(fixtureId, postId, postUrl, firstPublishedAt) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  await db.update(fixtures).set({ bloggerPostId: postId, bloggerPostUrl: postUrl, firstPublishedAt: firstPublishedAt ?? /* @__PURE__ */ new Date(), lastPublishedAt: /* @__PURE__ */ new Date() }).where(eq2(fixtures.id, fixtureId));
+  await supabaseRest("fixtures", {
+    method: "PATCH",
+    query: { id: `eq.${fixtureId}` },
+    body: {
+      bloggerPostId: postId,
+      bloggerPostUrl: postUrl,
+      firstPublishedAt: firstPublishedAt?.toISOString() ?? (/* @__PURE__ */ new Date()).toISOString(),
+      lastPublishedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    },
+    prefer: "return=representation"
+  });
 }
 async function listRecentFixtures(limit = 100) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select({ fixture: fixtures, tournament: tournaments }).from(fixtures).innerJoin(tournaments, eq2(fixtures.tournamentId, tournaments.id)).orderBy(desc(fixtures.startTimeUtc)).limit(limit);
+  const rows = await supabaseRest("fixtures", {
+    query: {
+      select: "*,tournament:tournaments(*)",
+      order: "startTimeUtc.desc",
+      limit
+    }
+  });
+  return rows.flatMap((row) => row.tournament ? [{ fixture: row, tournament: row.tournament }] : []);
 }
 async function createRun(trigger) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const result = await db.insert(publisherRuns).values({ trigger, status: "running" }).returning({ id: publisherRuns.id });
-  if (!result[0]) throw new Error("Unable to create publisher run");
-  return result[0].id;
+  const rows = await supabaseRest("publisher_runs", {
+    method: "POST",
+    body: [{ trigger, status: "running" }],
+    prefer: "return=representation"
+  });
+  if (!rows[0]) throw new Error("Unable to create publisher run");
+  return rows[0].id;
 }
 async function finishRun(id, values) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  await db.update(publisherRuns).set({ ...values, finishedAt: /* @__PURE__ */ new Date() }).where(eq2(publisherRuns.id, id));
+  await supabaseRest("publisher_runs", {
+    method: "PATCH",
+    query: { id: `eq.${id}` },
+    body: { ...values, finishedAt: (/* @__PURE__ */ new Date()).toISOString() },
+    prefer: "return=representation"
+  });
 }
 async function listRuns(limit = 20) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(publisherRuns).orderBy(desc(publisherRuns.startedAt)).limit(limit);
+  return supabaseRest("publisher_runs", {
+    query: { select: "*", order: "startedAt.desc", limit }
+  });
 }
 
 // server/publisher/blogger.ts
@@ -1161,8 +1124,8 @@ async function fetchFixtures() {
   if (!response.ok || body.status === "failure") {
     throw new Error(`CricketData request failed (${response.status}): ${body.reason ?? "unknown provider error"}`);
   }
-  const fixtures2 = (body.data ?? []).map(normalizeFixture);
-  return { fixtures: fixtures2, statusCode: response.status };
+  const fixtures = (body.data ?? []).map(normalizeFixture);
+  return { fixtures, statusCode: response.status };
 }
 
 // server/publisher/service.ts
@@ -1418,9 +1381,6 @@ async function createContext(opts) {
   };
 }
 
-// server/publisher/routes.ts
-import { sql } from "drizzle-orm";
-
 // server/publisher/cron-auth.ts
 function isValidCronAuthorization(expected, authorization) {
   return Boolean(expected && authorization === `Bearer ${expected}`);
@@ -1433,15 +1393,8 @@ function redirectUri(req) {
 }
 function registerPublisherRoutes(app) {
   app.get("/api/health/database", async (_req, res) => {
-    const db = await getDb();
-    if (!db) return res.json({ configured: false, reachable: false });
-    try {
-      await db.execute(sql`select 1`);
-      return res.json({ configured: true, reachable: true });
-    } catch (error) {
-      console.error("[Database] Health check failed", error);
-      return res.status(503).json({ configured: true, reachable: false });
-    }
+    const health = await checkSupabaseRest();
+    return res.status(health.reachable ? 200 : 503).json(health);
   });
   app.get("/api/board", async (_req, res) => {
     try {
