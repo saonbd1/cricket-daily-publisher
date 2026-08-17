@@ -7,7 +7,7 @@ import { runPublisher } from "./service.js";
 import { fetchFixtures } from "./cricketdata.js";
 import { isValidCronAuthorization } from "./cron-auth.js";
 
-function redirectUri(req: Request) {
+export function getBloggerRedirectUri(req: Request) {
   const protocol = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0];
   return `${protocol}://${req.get("host")}/api/blogger/oauth/callback`;
 }
@@ -44,7 +44,7 @@ export function registerPublisherRoutes(app: Express) {
     try {
       const state = createOAuthState();
       await saveOAuthState(state);
-      res.redirect(getBloggerAuthorizationUrl(state, redirectUri(req)));
+      res.redirect(getBloggerAuthorizationUrl(state, getBloggerRedirectUri(req)));
     } catch (error) {
       res.status(500).send(error instanceof Error ? error.message : "Unable to start Blogger authorization");
     }
@@ -55,7 +55,7 @@ export function registerPublisherRoutes(app: Express) {
       const code = typeof req.query.code === "string" ? req.query.code : "";
       const state = typeof req.query.state === "string" ? req.query.state : "";
       if (!code || !state || !(await consumeOAuthState(state))) return res.status(400).send("Invalid Blogger OAuth callback state");
-      const result = await completeBloggerAuthorization(code, redirectUri(req));
+      const result = await completeBloggerAuthorization(code, getBloggerRedirectUri(req));
       res.status(200).send(`Blogger authorization completed for ${result.blogUrl}. You may close this page.`);
     } catch (error) {
       res.status(500).send(error instanceof Error ? error.message : "Blogger authorization failed");

@@ -454,11 +454,11 @@ function getQueryParam(req, key) {
   const value = req.query[key];
   return typeof value === "string" ? value : void 0;
 }
-function buildOAuthLoginUrl({ portalUrl, appId, redirectUri: redirectUri2, nonce }) {
+function buildOAuthLoginUrl({ portalUrl, appId, redirectUri, nonce }) {
   const url = new URL(`${portalUrl}/app-auth`);
   url.searchParams.set("appId", appId);
-  url.searchParams.set("redirectUri", redirectUri2);
-  url.searchParams.set("state", encodeOAuthState({ redirectUri: redirectUri2, nonce }));
+  url.searchParams.set("redirectUri", redirectUri);
+  url.searchParams.set("state", encodeOAuthState({ redirectUri, nonce }));
   url.searchParams.set("type", "signIn");
   return url.toString();
 }
@@ -473,7 +473,7 @@ function registerOAuthRoutes(app) {
     const nonce = randomUUID();
     const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
     const protocol = forwardedProtocol || req.protocol;
-    const redirectUri2 = `${protocol}://${req.get("host")}/api/oauth/callback`;
+    const redirectUri = `${protocol}://${req.get("host")}/api/oauth/callback`;
     res.cookie(OAUTH_STATE_COOKIE, nonce, {
       httpOnly: true,
       secure: protocol === "https",
@@ -481,7 +481,7 @@ function registerOAuthRoutes(app) {
       path: "/",
       maxAge: 10 * 60 * 1e3
     });
-    res.redirect(302, buildOAuthLoginUrl({ portalUrl, appId, redirectUri: redirectUri2, nonce }));
+    res.redirect(302, buildOAuthLoginUrl({ portalUrl, appId, redirectUri, nonce }));
   });
   app.get("/api/oauth/callback", async (req, res) => {
     const code = getQueryParam(req, "code");
@@ -543,13 +543,13 @@ function getRedirectUri(req) {
   if (!host) throw new Error("OAuth host is missing");
   return `${protocol}://${host}/api/google/callback`;
 }
-function buildGoogleLoginUrl({ clientId, redirectUri: redirectUri2, nonce }) {
+function buildGoogleLoginUrl({ clientId, redirectUri, nonce }) {
   const url = new URL(GOOGLE_AUTH_URL);
   url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", redirectUri2);
+  url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "openid email profile");
-  url.searchParams.set("state", encodeOAuthState({ redirectUri: redirectUri2, nonce }));
+  url.searchParams.set("state", encodeOAuthState({ redirectUri, nonce }));
   url.searchParams.set("prompt", "select_account");
   return url.toString();
 }
@@ -561,15 +561,15 @@ function registerGoogleOAuthRoutes(app) {
       return;
     }
     const nonce = randomUUID2();
-    const redirectUri2 = getRedirectUri(req);
+    const redirectUri = getRedirectUri(req);
     res.cookie(GOOGLE_STATE_COOKIE, nonce, {
       httpOnly: true,
-      secure: redirectUri2.startsWith("https://"),
+      secure: redirectUri.startsWith("https://"),
       sameSite: "lax",
       path: "/",
       maxAge: 10 * 60 * 1e3
     });
-    res.redirect(302, buildGoogleLoginUrl({ clientId, redirectUri: redirectUri2, nonce }));
+    res.redirect(302, buildGoogleLoginUrl({ clientId, redirectUri, nonce }));
   });
   app.get("/api/google/callback", async (req, res) => {
     const code = getQueryParam2(req, "code");
@@ -578,9 +578,9 @@ function registerGoogleOAuthRoutes(app) {
       res.status(400).json({ error: "code and state are required" });
       return;
     }
-    const { nonce, redirectUri: redirectUri2 } = decodeOAuthState(state);
+    const { nonce, redirectUri } = decodeOAuthState(state);
     const expectedNonce = parseCookieHeader3(req.headers.cookie ?? "")[GOOGLE_STATE_COOKIE];
-    if (!nonce || nonce !== expectedNonce || redirectUri2 !== getRedirectUri(req)) {
+    if (!nonce || nonce !== expectedNonce || redirectUri !== getRedirectUri(req)) {
       res.status(403).json({ error: "invalid google oauth state" });
       return;
     }
@@ -600,7 +600,7 @@ function registerGoogleOAuthRoutes(app) {
           client_secret: clientSecret,
           code,
           grant_type: "authorization_code",
-          redirect_uri: redirectUri2
+          redirect_uri: redirectUri
         })
       });
       if (!tokenResponse.ok) throw new Error(`Google token exchange failed: ${tokenResponse.status}`);
@@ -988,11 +988,11 @@ function requireOAuthConfig() {
 function createOAuthState() {
   return crypto.randomBytes(24).toString("hex");
 }
-function getBloggerAuthorizationUrl(state, redirectUri2) {
+function getBloggerAuthorizationUrl(state, redirectUri) {
   requireOAuthConfig();
   const params = new URLSearchParams({
     client_id: ENV.googleClientId,
-    redirect_uri: redirectUri2,
+    redirect_uri: redirectUri,
     response_type: "code",
     access_type: "offline",
     prompt: "consent",
@@ -1001,7 +1001,7 @@ function getBloggerAuthorizationUrl(state, redirectUri2) {
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
-async function exchangeCode(code, redirectUri2) {
+async function exchangeCode(code, redirectUri) {
   requireOAuthConfig();
   const response = await fetch(GOOGLE_TOKEN_URL2, {
     method: "POST",
@@ -1010,7 +1010,7 @@ async function exchangeCode(code, redirectUri2) {
       code,
       client_id: ENV.googleClientId,
       client_secret: ENV.googleClientSecret,
-      redirect_uri: redirectUri2,
+      redirect_uri: redirectUri,
       grant_type: "authorization_code"
     })
   });
@@ -1039,8 +1039,8 @@ async function bloggerRequest(path, init, refreshToken) {
   if (!response.ok) throw new Error(`Blogger request failed (${response.status}): ${body.error?.message ?? "unknown error"}`);
   return { body, statusCode: response.status };
 }
-async function completeBloggerAuthorization(code, redirectUri2) {
-  const token = await exchangeCode(code, redirectUri2);
+async function completeBloggerAuthorization(code, redirectUri) {
+  const token = await exchangeCode(code, redirectUri);
   const refreshToken = token.refresh_token;
   if (!refreshToken) throw new Error("Google authorization did not return a refresh token");
   const blog = await bloggerRequest(`/blogs/byurl?url=${encodeURIComponent("https://watchnowcricket.blogspot.com")}&fetchUserInfo=false`, { method: "GET" }, refreshToken);
@@ -1396,7 +1396,7 @@ function isValidCronAuthorization(expected, authorization) {
 }
 
 // server/publisher/routes.ts
-function redirectUri(req) {
+function getBloggerRedirectUri(req) {
   const protocol = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0];
   return `${protocol}://${req.get("host")}/api/blogger/oauth/callback`;
 }
@@ -1429,7 +1429,7 @@ function registerPublisherRoutes(app) {
     try {
       const state = createOAuthState();
       await saveOAuthState(state);
-      res.redirect(getBloggerAuthorizationUrl(state, redirectUri(req)));
+      res.redirect(getBloggerAuthorizationUrl(state, getBloggerRedirectUri(req)));
     } catch (error) {
       res.status(500).send(error instanceof Error ? error.message : "Unable to start Blogger authorization");
     }
@@ -1439,7 +1439,7 @@ function registerPublisherRoutes(app) {
       const code = typeof req.query.code === "string" ? req.query.code : "";
       const state = typeof req.query.state === "string" ? req.query.state : "";
       if (!code || !state || !await consumeOAuthState(state)) return res.status(400).send("Invalid Blogger OAuth callback state");
-      const result = await completeBloggerAuthorization(code, redirectUri(req));
+      const result = await completeBloggerAuthorization(code, getBloggerRedirectUri(req));
       res.status(200).send(`Blogger authorization completed for ${result.blogUrl}. You may close this page.`);
     } catch (error) {
       res.status(500).send(error instanceof Error ? error.message : "Blogger authorization failed");
