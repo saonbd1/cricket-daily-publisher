@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatGmt6, normalizeFixture } from "./publisher/normalization";
+import { formatGmt6, normalizeFixture } from "./publisher/normalization.js";
 
 describe("fixture normalization", () => {
   it("converts an ISO UTC start time to Bangladesh time without changing the instant", () => {

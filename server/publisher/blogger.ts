@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { ENV } from "../_core/env";
-import { getOrCreateSettings, saveBloggerCredentials } from "./db";
+import { ENV } from "../_core/env.js";
+import { getOrCreateSettings, saveBloggerCredentials } from "./db.js";
 
 const BLOGGER_SCOPE = "https://www.googleapis.com/auth/blogger";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";

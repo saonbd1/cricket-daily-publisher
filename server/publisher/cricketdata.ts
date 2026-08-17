@@ -1,5 +1,5 @@
-import { ENV } from "../_core/env";
-import { normalizeFixture, type NormalizedFixture, type ProviderFixture } from "./normalization";
+import { ENV } from "../_core/env.js";
+import { normalizeFixture, type NormalizedFixture, type ProviderFixture } from "./normalization.js";
 
 const API_BASE = "https://api.cricapi.com/v1";
 

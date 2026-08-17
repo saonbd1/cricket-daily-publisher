@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { fixtureMarker, postContent } from "./publisher/service";
-import { normalizeFixture } from "./publisher/normalization";
-import { findMatchingBloggerPost } from "./publisher/blogger";
-import type { NormalizedFixture } from "./publisher/normalization";
+import { fixtureMarker, postContent } from "./publisher/service.js";
+import { normalizeFixture } from "./publisher/normalization.js";
+import { findMatchingBloggerPost } from "./publisher/blogger.js";
+import type { NormalizedFixture } from "./publisher/normalization.js";
 
 const fixture: NormalizedFixture = {
   externalId: "fixture-42",

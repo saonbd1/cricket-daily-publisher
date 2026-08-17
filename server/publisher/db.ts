@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
-import { fixtures, publisherRuns, publisherSettings, tournaments } from "../../drizzle/schema";
-import { getDb } from "../db";
-import type { NormalizedFixture } from "./normalization";
+import { fixtures, publisherRuns, publisherSettings, tournaments } from "../../drizzle/schema.js";
+import { getDb } from "../db.js";
+import type { NormalizedFixture } from "./normalization.js";
 
 export const DEFAULT_BLOG_URL = "https://watchnowcricket.blogspot.com";
 

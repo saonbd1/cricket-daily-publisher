@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidCronAuthorization } from "./publisher/cron-auth";
+import { isValidCronAuthorization } from "./publisher/cron-auth.js";
 
 describe("Vercel Cron authorization", () => {
   it("accepts the configured bearer token", () => {

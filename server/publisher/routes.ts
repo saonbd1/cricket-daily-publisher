@@ -1,9 +1,9 @@
 import type { Express, Request, Response } from "express";
-import { sdk } from "../_core/sdk";
-import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger";
-import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db";
-import { runPublisher } from "./service";
-import { isValidCronAuthorization } from "./cron-auth";
+import { sdk } from "../_core/sdk.js";
+import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger.js";
+import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db.js";
+import { runPublisher } from "./service.js";
+import { isValidCronAuthorization } from "./cron-auth.js";
 
 function redirectUri(req: Request) {
   const protocol = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0];

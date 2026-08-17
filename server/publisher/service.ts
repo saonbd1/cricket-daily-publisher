@@ -1,7 +1,7 @@
-import { createBloggerPost, findBloggerPostByMarker, getStoredBloggerSettings, updateBloggerPost } from "./blogger";
-import { fetchFixtures } from "./cricketdata";
-import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db";
-import type { NormalizedFixture } from "./normalization";
+import { createBloggerPost, findBloggerPostByMarker, getStoredBloggerSettings, updateBloggerPost } from "./blogger.js";
+import { fetchFixtures } from "./cricketdata.js";
+import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db.js";
+import type { NormalizedFixture } from "./normalization.js";
 
 const LOOKBACK_MS = 12 * 60 * 60 * 1000;
 const LOOKAHEAD_MS = 8 * 24 * 60 * 60 * 1000;

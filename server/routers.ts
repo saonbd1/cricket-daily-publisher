@@ -1,13 +1,13 @@
 import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, publicProcedure, router } from "./_core/trpc";
-import { listRecentFixtures, listRuns } from "./publisher/db";
-import { getStoredBloggerSettings } from "./publisher/blogger";
-import { runPublisher } from "./publisher/service";
-import { createHeartbeatJob } from "./_core/heartbeat";
-import { saveScheduleTaskUid } from "./publisher/db";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc.js";
+import { listRecentFixtures, listRuns } from "./publisher/db.js";
+import { getStoredBloggerSettings } from "./publisher/blogger.js";
+import { runPublisher } from "./publisher/service.js";
+import { createHeartbeatJob } from "./_core/heartbeat.js";
+import { saveScheduleTaskUid } from "./publisher/db.js";
 import { z } from "zod";
 
 export const appRouter = router({

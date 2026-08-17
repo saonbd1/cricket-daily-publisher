@@ -1,10 +1,10 @@
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./_core/oauth";
-import { registerStorageProxy } from "./_core/storageProxy";
-import { appRouter } from "./routers";
-import { createContext } from "./_core/context";
-import { registerPublisherRoutes } from "./publisher/routes";
+import { registerOAuthRoutes } from "./_core/oauth.js";
+import { registerStorageProxy } from "./_core/storageProxy.js";
+import { appRouter } from "./routers.js";
+import { createContext } from "./_core/context.js";
+import { registerPublisherRoutes } from "./publisher/routes.js";
 
 export function createApp() {
   const app = express();

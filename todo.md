@@ -31,8 +31,10 @@
 - [x] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
 - [ ] Update Blogger OAuth redirect URI for the chosen Vercel domain.
 - [x] Run tests and save an external-hosting checkpoint.
-- [ ] Fix Vercel production root serving bundled source instead of the application response, then verify the live API and dashboard.
+- [x] Fix Vercel production root serving bundled source instead of the application response, then verify the live API and dashboard.
 - [x] Link the Blogger homepage event dashboard to the automated homepage-board post label.
 - [ ] Complete an end-to-end production publisher run and confirm daily scheduling.
+- [ ] Verify the production `/api/trpc` endpoints return successful responses after the ESM import fix.
+- [ ] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
 - [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.
