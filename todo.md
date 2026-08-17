@@ -89,3 +89,4 @@
 - [ ] Deploy the Supabase pooler fallback and verify production dashboard queries no longer hit database connection errors
 - [ ] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
 - [ ] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records
+- [ ] Add a non-secret production health check for database configuration and connectivity diagnostics

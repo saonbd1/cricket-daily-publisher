@@ -1418,6 +1418,9 @@ async function createContext(opts) {
   };
 }
 
+// server/publisher/routes.ts
+import { sql } from "drizzle-orm";
+
 // server/publisher/cron-auth.ts
 function isValidCronAuthorization(expected, authorization) {
   return Boolean(expected && authorization === `Bearer ${expected}`);
@@ -1429,6 +1432,17 @@ function redirectUri(req) {
   return `${protocol}://${req.get("host")}/api/blogger/oauth/callback`;
 }
 function registerPublisherRoutes(app) {
+  app.get("/api/health/database", async (_req, res) => {
+    const db = await getDb();
+    if (!db) return res.json({ configured: false, reachable: false });
+    try {
+      await db.execute(sql`select 1`);
+      return res.json({ configured: true, reachable: true });
+    } catch (error) {
+      console.error("[Database] Health check failed", error);
+      return res.status(503).json({ configured: true, reachable: false });
+    }
+  });
   app.get("/api/board", async (_req, res) => {
     try {
       const boardUrl = await getBoardPostUrl();
