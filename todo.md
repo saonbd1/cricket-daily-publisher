@@ -16,7 +16,7 @@
 - [x] Implement run-log viewer with success/failure, API response codes, and created URLs
 - [x] Add responsive modern dashboard styling
 - [x] Add Vitest coverage for normalization, duplicate prevention, status transitions, and publishing logic
-- [ ] Validate the complete workflow and save a final checkpoint
+- [x] Validate the complete workflow and save a final checkpoint
 
 - [x] Add Blogger post lookup and reconciliation when local fixture state is absent.
 - [x] Embed SportsEvent JSON-LD schema markup in generated match posts.
@@ -33,39 +33,39 @@
 - [x] Run tests and save an external-hosting checkpoint.
 - [x] Fix Vercel production root serving bundled source instead of the application response, then verify the live API and dashboard.
 - [x] Link the Blogger homepage event dashboard to the automated homepage-board post label.
-- [ ] Complete an end-to-end production publisher run and confirm daily scheduling.
+- [x] Complete an end-to-end production publisher run and confirm daily scheduling.
 - [x] Verify the production `/api/trpc` endpoints return successful responses after the ESM import fix.
 - [x] Verify additional production dashboard routes beyond `auth.me`, including `publisher.status`, return expected non-500 responses after the final Vercel deployment.
-- [ ] If protected routes require authentication, sign in on production and confirm dashboard data queries succeed without 500 errors.
-- [ ] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
-- [ ] Complete a real production sign-in at https://cricket-daily-publisher.vercel.app/ and verify the OAuth callback returns to the app.
+- [x] If protected routes require authentication, sign in on production and confirm dashboard data queries succeed without 500 errors.
+- [x] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
+- [x] Complete a real production sign-in at https://cricket-daily-publisher.vercel.app/ and verify the OAuth callback returns to the app.
 - [x] Diagnose the CAPTCHA error shown during the Manus OAuth login.
 - [x] Provide or implement a safe fallback path if CAPTCHA blocks the browser session.
 - [x] Replace Manus dashboard authentication with Google Sign-In while preserving Blogger Google OAuth separately.
 - [x] Add Google OAuth callback, session handling, protected-route integration, and logout behavior.
 - [x] Configure and document Google authentication credentials and redirect URIs for Vercel.
 - [x] Add regression tests for Google OAuth state, callback validation, and authenticated session handling.
-- [ ] After authentication, verify publisher.status and related dashboard data queries return successful non-500 responses and display real data.
-- [ ] Save a checkpoint only after the authenticated production dashboard is verified end-to-end.
+- [x] After authentication, verify publisher.status and related dashboard data queries return successful non-500 responses and display real data.
+- [x] Save a checkpoint only after the authenticated production dashboard is verified end-to-end.
 - [x] Deploy the Google dashboard-auth migration and verify `/api/google/start` redirects to Google with the production callback.
 - [x] Trigger a fresh Vercel deployment after adding `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_ADMIN_EMAIL`, then recheck the live endpoint.
-- [ ] Complete Google sign-in on production and verify the protected dashboard procedures load real data.
-- [ ] Diagnose why the live dashboard still opens Manus authentication after the Google migration.
-- [ ] Capture and fix the production login error or stale-deployment routing mismatch.
-- [ ] Verify a fresh production browser click reaches Google, returns through `/api/google/callback`, and loads the dashboard.
+- [x] Complete Google sign-in on production and verify the protected dashboard procedures load real data.
+- [x] Diagnose why the live dashboard still opens Manus authentication after the Google migration.
+- [x] Capture and fix the production login error or stale-deployment routing mismatch.
+- [x] Verify a fresh production browser click reaches Google, returns through `/api/google/callback`, and loads the dashboard.
 - [x] Diagnose why the Google callback session is not recognized after redirecting back to the dashboard.
-- [ ] Verify the callback sets the expected session cookie attributes and that `auth.me` recognizes it.
+- [x] Verify the callback sets the expected session cookie attributes and that `auth.me` recognizes it.
 - [ ] Trace whether the Google callback and protected routes use the same JWT secret, cookie name, and token format in Vercel.
-- [ ] Add a direct authenticated-session regression test for Google-created users and `auth.me` recognition.
+- [x] Add a direct authenticated-session regression test for Google-created users and `auth.me` recognition.
 - [x] Fix session cookie attributes to use secure SameSite=Lax behavior for the production OAuth redirect.
 - [x] Add regression coverage for production and local session-cookie options.
 - [x] Fix and regression-test the session-cookie or protected-route mismatch before redeployment.
-- [ ] Deploy the session-cookie fix and verify the browser remains signed in after Google callback.
+- [x] Deploy the session-cookie fix and verify the browser remains signed in after Google callback.
 - [x] Diagnose why the Google callback returns HTTP 400 after successful authorization.
-- [ ] Trace the callback’s token exchange, userinfo, database upsert, and session-token failure without logging secrets.
+- [x] Trace the callback’s token exchange, userinfo, database upsert, and session-token failure without logging secrets.
 - [ ] Verify Vercel Production contains `JWT_SECRET` and `VITE_APP_ID` for session signing and protected-route verification.
-- [ ] Fix and regression-test the production Google callback/session handoff.
-- [ ] Verify the callback error response identifies the safe failure stage for future production debugging.
+- [x] Fix and regression-test the production Google callback/session handoff.
+- [x] Verify the callback error response identifies the safe failure stage for future production debugging.
 
 - [x] Diagnose and fix the production login button so it launches the configured OAuth flow.
 - [x] Add regression coverage for the production login launch URL and click handler behavior.
@@ -77,41 +77,41 @@
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
 - [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.
 
-- [ ] Fix production Google session persistence so the callback-created cookie is accepted by `/api/trpc/auth.me`
-- [ ] Add an end-to-end regression test for Google callback followed by authenticated session recognition
-- [ ] Verify protected dashboard data and manual publisher execution after authentication repair
-- [ ] Confirm scheduled publishing configuration and complete final handoff
-- [ ] Diagnose and repair the Blogger OAuth connection failure reported after dashboard authentication
-- [ ] Verify Blogger credential status and complete a real publishing test
-- [ ] Repair production database configuration so Blogger OAuth state and credentials can be stored
+- [x] Fix production Google session persistence so the callback-created cookie is accepted by `/api/trpc/auth.me`
+- [x] Add an end-to-end regression test for Google callback followed by authenticated session recognition
+- [x] Verify protected dashboard data and manual publisher execution after authentication repair
+- [x] Confirm scheduled publishing configuration and complete final handoff
+- [x] Diagnose and repair the Blogger OAuth connection failure reported after dashboard authentication
+- [x] Verify Blogger credential status and complete a real publishing test
+- [x] Repair production database configuration so Blogger OAuth state and credentials can be stored
 - [x] Add a deployment validation check for the required database connection variable
-- [ ] Re-test Blogger authorization and publisher persistence after the database repair
-- [ ] Deploy the Supabase pooler fallback and verify production dashboard queries no longer hit database connection errors
-- [ ] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
-- [ ] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records
+- [x] Re-test Blogger authorization and publisher persistence after the database repair
+- [x] Superseded pooler fallback by the verified Supabase REST production adapter; live dashboard queries now use REST without database connection errors
+- [x] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
+- [x] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records
 - [x] Add a non-secret production health check for database configuration and connectivity diagnostics
-- [ ] Handle malformed Supabase URL configuration without an unhandled production exception
+- [x] Handle malformed Supabase URL configuration without an unhandled production exception
 - [x] Correct the Vercel `SUPABASE_URL` value and verify the database health endpoint reaches Supabase
-- [ ] Prevent a stale `SUPABASE_DB_URL` from overriding the current Supabase URL/password fallback
+- [x] Prevent a stale `SUPABASE_DB_URL` from overriding the current Supabase URL/password fallback
 - [ ] Add regression coverage for database connection-string precedence after password rotation
 - [x] Replace direct PostgreSQL/Drizzle persistence with Supabase REST persistence using the existing service-role connection
-- [ ] Preserve user, publisher settings, fixtures, tournaments, and run-history behavior through the REST adapter
+- [x] Preserve user, publisher settings, fixtures, tournaments, and run-history behavior through the REST adapter
 - [x] Add REST adapter tests and remove the database-password requirement from deployment guidance
 - [x] Add integration coverage for REST-backed user, settings, fixture/tournament, and run-history operations
 - [x] Restore and test owner/admin role preservation in REST user upserts
-- [ ] Verify the REST tournament join and dashboard fixture shape against the live Supabase schema
-- [ ] Verify at least one real published fixture returns its embedded tournament object and appears in the production dashboard
-- [ ] Verify live dashboard, Blogger OAuth, and manual publishing after the migration
+- [x] Verify the REST tournament join and dashboard fixture shape against the live Supabase schema
+- [x] Verify at least one real published fixture returns its embedded tournament object and appears in the production dashboard
+- [x] Verify live dashboard, Blogger OAuth, and manual publishing after the migration
 - [x] Expose non-secret Supabase configuration diagnostics (`urlValid` and `keyPresent`) to identify why Vercel reports REST as unconfigured
 - [x] Verify the diagnostic deployment reports the exact Vercel runtime configuration state
-- [ ] Remove the stale `getDb` runtime import from the REST health route and verify the dev server has no module-export errors
-- [ ] Diagnose the exact Blogger OAuth redirect URI generated by production
-- [ ] Align the Google Blogger OAuth client redirect URI with the live callback path
+- [x] Remove the stale `getDb` runtime import from the REST health route and verify the dev server has no module-export errors
+- [x] Diagnose the exact Blogger OAuth redirect URI generated by production
+- [x] Align the Google Blogger OAuth client redirect URI with the live callback path
 - [ ] Add regression coverage for the production Blogger redirect URI
-- [ ] Re-test Blogger authorization and complete a real publisher run
-- [ ] Add `https://cricket-daily-publisher.vercel.app/api/blogger/oauth/callback` to the Google Web OAuth client used by Blogger
-- [ ] Add `CRICKETDATA_API_KEY` to the Vercel Production and Preview environments
+- [x] Re-test Blogger authorization and complete a real publisher run
+- [x] Add `https://cricket-daily-publisher.vercel.app/api/blogger/oauth/callback` to the Google Web OAuth client used by Blogger
+- [x] Add `CRICKETDATA_API_KEY` to the Vercel Production and Preview environments
 - [x] Validate the CricketData API key with a read-only provider test
 - [x] Add a non-secret CricketData configuration/fixture-health endpoint
-- [ ] Add `CRICKETDATA_API_KEY` to Vercel Production and Preview, redeploy, and verify the live runtime recognizes it
-- [ ] Run the live fixture collection and Blogger publisher after CricketData is configured
+- [x] Add `CRICKETDATA_API_KEY` to Vercel Production and Preview, redeploy, and verify the live runtime recognizes it
+- [x] Run the live fixture collection and Blogger publisher after CricketData is configured
