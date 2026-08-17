@@ -4,7 +4,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 60
     }
   },
@@ -15,6 +15,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.ts" }
+    { "source": "/api/:path*", "destination": "/api/index.js" }
   ]
 }
