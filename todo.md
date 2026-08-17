@@ -119,3 +119,12 @@
 - [ ] Verify the manually uploaded corrected theme preserves the date display and fixture board after the ticker cleanup
 - [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
 - [ ] Verify contrast, ticker/date rendering, fixture-table readability, and mobile presentation after the palette refresh
+- [ ] Remove unwanted visible theme credit links from the Blogger footer while preserving required Blogger functionality and the report-abuse link
+- [ ] Upload the updated Blogger theme containing `.Attribution .image-attribution{display:none!important}` and verify the live footer no longer shows the theme credit link
+- [ ] Verify after upload that Powered by Blogger, Report Abuse, the date, ticker, palette, and Daily Cricket Fixture Board link remain intact
+- [x] Audit the Blogger theme for malicious or unnecessary external scripts, trackers, redirects, hidden links, and inherited attribution code
+- [x] Prepare and statically validate a clean security-reviewed theme revision with the intended clean foundation and core custom features
+- [x] Create a minimal clean Blogger XML foundation without inherited theme-image attribution, unrelated assets, or unnecessary external code
+- [x] Build the clean foundation with custom Watch Now Cricket structure, event/table styling, date/ticker, SEO schema, responsive styles, and a rendered Fixture Board redirect link
+- [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
+- [ ] Upload the clean template to Blogger and verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
