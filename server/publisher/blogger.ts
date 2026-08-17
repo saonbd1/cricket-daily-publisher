@@ -87,11 +87,14 @@ export async function getStoredBloggerSettings() {
 
 export type BloggerPost = { id: string; url?: string; title?: string; content?: string };
 
+export function findMatchingBloggerPost(items: BloggerPost[] | undefined, marker: string) {
+  return items?.find(item => item.content?.includes(marker)) ?? null;
+}
+
 export async function findBloggerPostByMarker(marker: string, refreshToken: string) {
   const settings = await getStoredBloggerSettings();
   const response = await bloggerRequest<{ items?: BloggerPost[] }>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/search?q=${encodeURIComponent(marker)}&fetchBodies=true`, { method: "GET" }, refreshToken);
-  const post = response.body.items?.find(item => item.content?.includes(marker));
-  return post ?? null;
+  return findMatchingBloggerPost(response.body.items, marker);
 }
 
 export async function createBloggerPost(title: string, content: string, labels: string[], refreshToken: string) {

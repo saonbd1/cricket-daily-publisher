@@ -20,7 +20,7 @@
 
 - [x] Add Blogger post lookup and reconciliation when local fixture state is absent.
 - [x] Embed SportsEvent JSON-LD schema markup in generated match posts.
-- [ ] Synchronize the Blogger homepage event table with generated post links.
+- [ ] Connect the existing hardcoded Blogger theme homepage table to the generated Daily Cricket Fixture Board post.
 - [x] Add a published-post count metric to the dashboard.
 - [x] Extend run history with API/Blogger response codes and created or updated post URLs.
-- [ ] Add Vitest coverage for duplicate prevention, status mapping, and create/update publishing behavior.
+- [x] Add Vitest coverage for duplicate prevention, status mapping, and create/update publishing behavior.
