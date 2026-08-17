@@ -180,8 +180,10 @@ function getSessionCookieOptions(req) {
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req)
+    // OAuth returns through a top-level navigation, so Lax is sufficient and
+    // is accepted more consistently than SameSite=None across browsers.
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" || isSecureRequest(req)
   };
 }
 

@@ -47,8 +47,23 @@
 - [x] Add regression tests for Google OAuth state, callback validation, and authenticated session handling.
 - [ ] After authentication, verify publisher.status and related dashboard data queries return successful non-500 responses and display real data.
 - [ ] Save a checkpoint only after the authenticated production dashboard is verified end-to-end.
-- [ ] Deploy the Google dashboard-auth migration and verify `/api/google/start` redirects to Google with the production callback.
+- [x] Deploy the Google dashboard-auth migration and verify `/api/google/start` redirects to Google with the production callback.
+- [x] Trigger a fresh Vercel deployment after adding `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_ADMIN_EMAIL`, then recheck the live endpoint.
 - [ ] Complete Google sign-in on production and verify the protected dashboard procedures load real data.
+- [ ] Diagnose why the live dashboard still opens Manus authentication after the Google migration.
+- [ ] Capture and fix the production login error or stale-deployment routing mismatch.
+- [ ] Verify a fresh production browser click reaches Google, returns through `/api/google/callback`, and loads the dashboard.
+- [ ] Diagnose why the Google callback session is not recognized after redirecting back to the dashboard.
+- [ ] Verify the callback sets the expected session cookie attributes and that `auth.me` recognizes it.
+- [x] Fix session cookie attributes to use secure SameSite=Lax behavior for the production OAuth redirect.
+- [x] Add regression coverage for production and local session-cookie options.
+- [x] Fix and regression-test the session-cookie or protected-route mismatch before redeployment.
+- [ ] Deploy the session-cookie fix and verify the browser remains signed in after Google callback.
+- [x] Diagnose why the Google callback returns HTTP 400 after successful authorization.
+- [ ] Trace the callback’s token exchange, userinfo, database upsert, and session-token failure without logging secrets.
+- [ ] Verify Vercel Production contains `JWT_SECRET` and `VITE_APP_ID` for session signing and protected-route verification.
+- [ ] Fix and regression-test the production Google callback/session handoff.
+- [ ] Verify the callback error response identifies the safe failure stage for future production debugging.
 
 - [x] Diagnose and fix the production login button so it launches the configured OAuth flow.
 - [x] Add regression coverage for the production login launch URL and click handler behavior.
