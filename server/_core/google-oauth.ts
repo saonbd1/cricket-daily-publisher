@@ -128,6 +128,8 @@ export function registerGoogleOAuthRoutes(app: Express) {
 
       const sessionToken = await sdk.createSessionToken(openId, {
         name: userInfo.name || email,
+        email,
+        role: "admin",
         expiresInMs: ONE_YEAR_MS,
       });
       res.cookie(COOKIE_NAME, sessionToken, {

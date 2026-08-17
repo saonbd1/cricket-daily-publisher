@@ -202,6 +202,10 @@ import axios from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
 var isNonEmptyString = (value) => typeof value === "string" && value.length > 0;
+var SESSION_APP_ID_FALLBACK = "cricket-daily-publisher";
+function getSessionAppId() {
+  return ENV.appId || SESSION_APP_ID_FALLBACK;
+}
 var EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 var GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 var GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
@@ -314,8 +318,10 @@ var SDKServer = class {
     return this.signSession(
       {
         openId,
-        appId: ENV.appId,
-        name: options.name || ""
+        appId: getSessionAppId(),
+        name: options.name || "",
+        email: options.email,
+        role: options.role
       },
       options
     );
@@ -328,7 +334,9 @@ var SDKServer = class {
     return new SignJWT({
       openId: payload.openId,
       appId: payload.appId,
-      name: payload.name
+      name: payload.name,
+      ...payload.email ? { email: payload.email } : {},
+      ...payload.role ? { role: payload.role } : {}
     }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime(expirationSeconds).sign(secretKey);
   }
   async verifySession(cookieValue) {
@@ -341,7 +349,7 @@ var SDKServer = class {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"]
       });
-      const { openId, appId, name } = payload;
+      const { openId, appId, name, email, role } = payload;
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
         console.warn("[Auth] Session payload missing required fields");
         return null;
@@ -349,7 +357,9 @@ var SDKServer = class {
       return {
         openId,
         appId,
-        name
+        name,
+        ...isNonEmptyString(email) ? { email } : {},
+        ...role === "admin" || role === "user" ? { role } : {}
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -398,7 +408,29 @@ var SDKServer = class {
     }
     const sessionUserId = session.openId;
     const signedInAt = /* @__PURE__ */ new Date();
-    let user = await getUserByOpenId(sessionUserId);
+    let user;
+    try {
+      user = await getUserByOpenId(sessionUserId);
+    } catch (error) {
+      console.error("[Auth] User lookup failed", {
+        openIdPrefix: sessionUserId.slice(0, 16),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    if (!user && session.openId.startsWith("google:") && session.role === "admin" && session.email) {
+      const now = /* @__PURE__ */ new Date();
+      return {
+        id: -1,
+        openId: session.openId,
+        name: session.name,
+        email: session.email,
+        loginMethod: "google",
+        role: "admin",
+        createdAt: now,
+        updatedAt: now,
+        lastSignedIn: signedInAt
+      };
+    }
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
@@ -418,10 +450,17 @@ var SDKServer = class {
     if (!user) {
       throw ForbiddenError("User not found");
     }
-    await upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt
-    });
+    try {
+      await upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt
+      });
+    } catch (error) {
+      console.error("[Auth] User sign-in timestamp update failed", {
+        openIdPrefix: user.openId.slice(0, 16),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
     return user;
   }
 };
@@ -627,6 +666,8 @@ function registerGoogleOAuthRoutes(app) {
       });
       const sessionToken = await sdk.createSessionToken(openId, {
         name: userInfo.name || email,
+        email,
+        role: "admin",
         expiresInMs: ONE_YEAR_MS2
       });
       res.cookie(COOKIE_NAME, sessionToken, {
@@ -1352,6 +1393,11 @@ async function createContext(opts) {
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
+    const cookieHeader = opts.req.headers.cookie ?? "";
+    console.warn("[Auth] Request authentication unavailable", {
+      hasSessionCookie: cookieHeader.includes("app_session_id="),
+      error: error instanceof Error ? error.message : String(error)
+    });
     user = null;
   }
   return {

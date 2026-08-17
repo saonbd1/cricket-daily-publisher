@@ -22,7 +22,18 @@ export type SessionPayload = {
   openId: string;
   appId: string;
   name: string;
+  email?: string;
+  role?: "admin" | "user";
 };
+
+// Google dashboard auth is independent of Manus OAuth. Keep locally signed
+// sessions verifiable even when the legacy Manus app id is not configured in
+// the external deployment.
+export const SESSION_APP_ID_FALLBACK = "cricket-daily-publisher";
+
+function getSessionAppId(): string {
+  return ENV.appId || SESSION_APP_ID_FALLBACK;
+}
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
@@ -165,13 +176,20 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {}
+    options: {
+      expiresInMs?: number;
+      name?: string;
+      email?: string;
+      role?: "admin" | "user";
+    } = {}
   ): Promise<string> {
     return this.signSession(
       {
         openId,
-        appId: ENV.appId,
+        appId: getSessionAppId(),
         name: options.name || "",
+        email: options.email,
+        role: options.role,
       },
       options
     );
@@ -190,6 +208,8 @@ class SDKServer {
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name,
+      ...(payload.email ? { email: payload.email } : {}),
+      ...(payload.role ? { role: payload.role } : {}),
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -198,7 +218,13 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{
+    openId: string;
+    appId: string;
+    name: string;
+    email?: string;
+    role?: "admin" | "user";
+  } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -209,7 +235,7 @@ class SDKServer {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { openId, appId, name, email, role } = payload as Record<string, unknown>;
 
       if (
         !isNonEmptyString(openId) ||
@@ -224,6 +250,8 @@ class SDKServer {
         openId,
         appId,
         name,
+        ...(isNonEmptyString(email) ? { email } : {}),
+        ...(role === "admin" || role === "user" ? { role } : {}),
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -287,7 +315,32 @@ class SDKServer {
 
     const sessionUserId = session.openId;
     const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    let user: User | undefined;
+    try {
+      user = await db.getUserByOpenId(sessionUserId);
+    } catch (error) {
+      console.error("[Auth] User lookup failed", {
+        openIdPrefix: sessionUserId.slice(0, 16),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Google admin sessions carry the already-verified identity claims. This
+    // fallback keeps the dashboard available during a transient DB outage.
+    if (!user && session.openId.startsWith("google:") && session.role === "admin" && session.email) {
+      const now = new Date();
+      return {
+        id: -1,
+        openId: session.openId,
+        name: session.name,
+        email: session.email,
+        loginMethod: "google",
+        role: "admin",
+        createdAt: now,
+        updatedAt: now,
+        lastSignedIn: signedInAt,
+      } as User;
+    }
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
@@ -311,10 +364,17 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    try {
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+    } catch (error) {
+      console.error("[Auth] User sign-in timestamp update failed", {
+        openIdPrefix: user.openId.slice(0, 16),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     return user;
   }

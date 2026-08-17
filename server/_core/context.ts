@@ -16,7 +16,13 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // Authentication is optional for public procedures.
+    // Authentication is optional for public procedures, but keep a safe
+    // diagnostic so production failures are actionable without logging JWTs.
+    const cookieHeader = opts.req.headers.cookie ?? "";
+    console.warn("[Auth] Request authentication unavailable", {
+      hasSessionCookie: cookieHeader.includes("app_session_id="),
+      error: error instanceof Error ? error.message : String(error),
+    });
     user = null;
   }
 

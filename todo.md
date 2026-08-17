@@ -53,8 +53,10 @@
 - [ ] Diagnose why the live dashboard still opens Manus authentication after the Google migration.
 - [ ] Capture and fix the production login error or stale-deployment routing mismatch.
 - [ ] Verify a fresh production browser click reaches Google, returns through `/api/google/callback`, and loads the dashboard.
-- [ ] Diagnose why the Google callback session is not recognized after redirecting back to the dashboard.
+- [x] Diagnose why the Google callback session is not recognized after redirecting back to the dashboard.
 - [ ] Verify the callback sets the expected session cookie attributes and that `auth.me` recognizes it.
+- [ ] Trace whether the Google callback and protected routes use the same JWT secret, cookie name, and token format in Vercel.
+- [ ] Add a direct authenticated-session regression test for Google-created users and `auth.me` recognition.
 - [x] Fix session cookie attributes to use secure SameSite=Lax behavior for the production OAuth redirect.
 - [x] Add regression coverage for production and local session-cookie options.
 - [x] Fix and regression-test the session-cookie or protected-route mismatch before redeployment.
@@ -74,3 +76,8 @@
 - [x] Add a client-side regression test for `startLogin()` covering the nonce cookie and navigation URL.
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
 - [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.
+
+- [ ] Fix production Google session persistence so the callback-created cookie is accepted by `/api/trpc/auth.me`
+- [ ] Add an end-to-end regression test for Google callback followed by authenticated session recognition
+- [ ] Verify protected dashboard data and manual publisher execution after authentication repair
+- [ ] Confirm scheduled publishing configuration and complete final handoff

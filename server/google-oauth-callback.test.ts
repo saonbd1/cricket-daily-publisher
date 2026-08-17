@@ -21,10 +21,8 @@ async function withServer(run: (baseUrl: string) => Promise<void>) {
 }
 
 function cookieValue(setCookie: string | null, name: string) {
-  const prefix = `${name}=`;
-  return setCookie?.split(";")[0]?.startsWith(prefix)
-    ? setCookie.split(";")[0].slice(prefix.length)
-    : "";
+  const match = setCookie?.match(new RegExp(`(?:^|,\\s*)${name}=([^;]+)`));
+  return match?.[1] ?? "";
 }
 
 describe("Google OAuth callback", () => {
@@ -94,7 +92,23 @@ describe("Google OAuth callback", () => {
       return realFetch(input, init);
     });
     vi.spyOn(db, "upsertUser").mockResolvedValue();
-    vi.spyOn(sdk, "createSessionToken").mockResolvedValue("signed-session-token");
+    const signedToken = await sdk.createSessionToken("google:google-sub", {
+      name: "Owner",
+      email: "owner@example.com",
+      role: "admin",
+    });
+    vi.spyOn(sdk, "createSessionToken").mockResolvedValue(signedToken);
+    vi.spyOn(db, "getUserByOpenId").mockResolvedValue({
+      id: 1,
+      openId: "google:google-sub",
+      name: "Owner",
+      email: "owner@example.com",
+      loginMethod: "google",
+      role: "admin",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
 
     await withServer(async baseUrl => {
       const start = await fetch(`${baseUrl}/api/google/start`, { redirect: "manual" });
@@ -109,8 +123,18 @@ describe("Google OAuth callback", () => {
       });
       expect(response.status).toBe(302);
       expect(response.headers.get("location")).toBe("/");
-      expect(response.headers.get("set-cookie")).toContain(`${COOKIE_NAME}=signed-session-token`);
+      const sessionCookie = response.headers.get("set-cookie");
+      expect(sessionCookie).toContain(`${COOKIE_NAME}=${signedToken}`);
       expect(db.upsertUser).toHaveBeenCalledWith(expect.objectContaining({ openId: "google:google-sub", role: "admin" }));
+
+      const authenticatedUser = await sdk.authenticateRequest({
+        headers: { cookie: `${COOKIE_NAME}=${cookieValue(sessionCookie, COOKIE_NAME)}` },
+      } as any);
+      expect(authenticatedUser).toMatchObject({
+        openId: "google:google-sub",
+        email: "owner@example.com",
+        role: "admin",
+      });
     });
   });
 });
