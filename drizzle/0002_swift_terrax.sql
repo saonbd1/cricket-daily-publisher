@@ -1,0 +1,1 @@
+ALTER TABLE `fixtures` DROP INDEX `fixtures_external_id_idx`;

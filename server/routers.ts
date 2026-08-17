@@ -1,28 +1,50 @@
+import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
+import { listRecentFixtures, listRuns } from "./publisher/db";
+import { getStoredBloggerSettings } from "./publisher/blogger";
+import { runPublisher } from "./publisher/service";
+import { createHeartbeatJob } from "./_core/heartbeat";
+import { saveScheduleTaskUid } from "./publisher/db";
+import { z } from "zod";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
-
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  publisher: router({
+    status: adminProcedure.query(async () => {
+      try {
+        const settings = await getStoredBloggerSettings();
+        return { authorized: true, blogId: settings.blogId, blogUrl: settings.blogUrl };
+      } catch {
+        return { authorized: false, blogId: null, blogUrl: "https://watchnowcricket.blogspot.com" };
+      }
+    }),
+    fixtures: adminProcedure.query(() => listRecentFixtures()),
+    runs: adminProcedure.query(() => listRuns()),
+    runNow: adminProcedure.mutation(() => runPublisher("manual")),
+    scheduleDaily: adminProcedure.input(z.object({ cron: z.string().default("0 0 3 * * *") })).mutation(async ({ ctx, input }) => {
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new Error("Active session required to create the daily schedule");
+      const job = await createHeartbeatJob({
+        name: "cricket-daily-publisher",
+        cron: input.cron,
+        path: "/api/scheduled/publish-cricket",
+        description: "Collect daily CricketData fixtures and publish one Blogger post per match.",
+      }, sessionToken);
+      await saveScheduleTaskUid(job.taskUid);
+      return job;
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

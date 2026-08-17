@@ -1,0 +1,1 @@
+ALTER TABLE `publisher_runs` ADD `postUrls` text;
