@@ -115,3 +115,7 @@
 - [x] Add a non-secret CricketData configuration/fixture-health endpoint
 - [x] Add `CRICKETDATA_API_KEY` to Vercel Production and Preview, redeploy, and verify the live runtime recognizes it
 - [x] Run the live fixture collection and Blogger publisher after CricketData is configured
+- [ ] Remove literal HTML entity text such as `&#8226;` from the Blogger homepage ticker and verify the top banner renders clean separators
+- [ ] Verify the manually uploaded corrected theme preserves the date display and fixture board after the ticker cleanup
+- [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
+- [ ] Verify contrast, ticker/date rendering, fixture-table readability, and mobile presentation after the palette refresh
