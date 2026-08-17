@@ -1,4 +1,5 @@
-import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE, decodeOAuthState } from "../../shared/const.js";
+import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE, decodeOAuthState, encodeOAuthState } from "../../shared/const.js";
+import { randomUUID } from "node:crypto";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import * as db from "../db.js";
@@ -10,7 +11,38 @@ function getQueryParam(req: Request, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+export function buildOAuthLoginUrl({ portalUrl, appId, redirectUri, nonce }: { portalUrl: string; appId: string; redirectUri: string; nonce: string }) {
+  const url = new URL(`${portalUrl}/app-auth`);
+  url.searchParams.set("appId", appId);
+  url.searchParams.set("redirectUri", redirectUri);
+  url.searchParams.set("state", encodeOAuthState({ redirectUri, nonce }));
+  url.searchParams.set("type", "signIn");
+  return url.toString();
+}
+
 export function registerOAuthRoutes(app: Express) {
+  app.get("/api/oauth/start", (req: Request, res: Response) => {
+    const portalUrl = process.env.VITE_OAUTH_PORTAL_URL || "https://manus.im";
+    const appId = process.env.VITE_APP_ID;
+    if (!appId) {
+      res.status(500).json({ error: "OAuth app configuration is missing" });
+      return;
+    }
+
+    const nonce = randomUUID();
+    const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const protocol = forwardedProtocol || req.protocol;
+    const redirectUri = `${protocol}://${req.get("host")}/api/oauth/callback`;
+    res.cookie(OAUTH_STATE_COOKIE, nonce, {
+      httpOnly: true,
+      secure: protocol === "https",
+      sameSite: "none",
+      path: "/",
+      maxAge: 10 * 60 * 1000,
+    });
+    res.redirect(302, buildOAuthLoginUrl({ portalUrl, appId, redirectUri, nonce }));
+  });
+
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
