@@ -1,5 +1,5 @@
 import { parse as parseCookie } from "cookie";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { adminProcedure, publicProcedure, router } from "./_core/trpc.js";

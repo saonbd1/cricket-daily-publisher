@@ -4,6 +4,10 @@ import path from "node:path";
 const roots = ["server", "api"];
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
 const importPattern = /(\bfrom\s+["']|\bimport\s*["'])(\.\.?\/[^"']+)(["'])/g;
+const aliasReplacements = new Map([
+  ["@shared/const", "../../shared/const"],
+  ["@shared/_core/errors", "../../shared/_core/errors"],
+]);
 
 for (const root of roots) {
   const files = [];
@@ -18,7 +22,8 @@ for (const root of roots) {
 
   for (const file of files) {
     const original = fs.readFileSync(file, "utf8");
-    const updated = original.replace(importPattern, (full, prefix, specifier, quote) => {
+    const aliased = original.replace(/(["'])@shared\/(?:_core\/errors|const)\1/g, (full, quote) => `${quote}${aliasReplacements.get(full.slice(1, -1))}${quote}`);
+    const updated = aliased.replace(importPattern, (full, prefix, specifier, quote) => {
       if (path.extname(specifier)) return full;
       return `${prefix}${specifier}.js${quote}`;
     });
