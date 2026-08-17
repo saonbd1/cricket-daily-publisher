@@ -17,3 +17,16 @@
 - Environment Variables page lists `SUPABASE_DB_PASSWORD`, `SUPABASE_URL`, and `SUPABASE_DB_REGION`, each for Production and Preview.
 - No `SUPABASE_DB_URL` variable is listed, so the stale explicit-URI hypothesis is not present in the visible Vercel project variables.
 - The current visible Vercel deployment is still commit `5f0c1e0`, so the local connection-precedence fix has not been published yet.
+
+## REST migration deployment
+
+- Latest REST migration deployment `6b9ac966` is Ready/Production at `https://cricket-daily-publisher-kgim5n7j7-saons-projects-c9a3d307.vercel.app`.
+- Its public health endpoint returned `{"configured":false,"reachable":false}` with HTTP 503.
+- Vercel Environment Variables still lists `SUPABASE_DB_PASSWORD`, `SUPABASE_URL`, and `SUPABASE_DB_REGION` for Production and Preview, but does not list `SUPABASE_SERVICE_ROLE_KEY`.
+- The REST service-role secret validates locally with the existing read-only Supabase REST tests; it still needs to be added to Vercel Production/Preview and redeployed.
+
+## Service-role redeploy verification
+
+- Vercel now lists `SUPABASE_SERVICE_ROLE_KEY` for Production and Preview, added about two minutes before the latest check.
+- A newer Production redeployment exists (`Redeploy of 2wuFdUXrw`), but its direct health endpoint still returns `{"configured":false,"reachable":false}`.
+- The public alias also returns HTTP 503 with the same response. This indicates either the deployment is not receiving the project variable at runtime or the server bundle is reading a different environment mapping than expected.

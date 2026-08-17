@@ -102,3 +102,5 @@
 - [ ] Verify the REST tournament join and dashboard fixture shape against the live Supabase schema
 - [ ] Verify at least one real published fixture returns its embedded tournament object and appears in the production dashboard
 - [ ] Verify live dashboard, Blogger OAuth, and manual publishing after the migration
+- [x] Expose non-secret Supabase configuration diagnostics (`urlValid` and `keyPresent`) to identify why Vercel reports REST as unconfigured
+- [ ] Verify the diagnostic deployment reports the exact Vercel runtime configuration state

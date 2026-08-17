@@ -7,11 +7,22 @@ type RestOptions = {
   prefer?: string;
 };
 
-function getRestBaseUrl() {
+function getRestConfig() {
   const url = ENV.supabaseUrl.trim().replace(/\/$/, "");
-  const key = ENV.supabaseServiceRoleKey;
-  if (!/^https:\/\/[^/]+\.supabase\.co$/.test(url) || !key) return null;
-  return `${url}/rest/v1`;
+  const urlValid = /^https:\/\/[^/]+\.supabase\.co$/.test(url);
+  const keyPresent = Boolean(ENV.supabaseServiceRoleKey.trim());
+  return { url, urlValid, keyPresent };
+}
+
+function getRestBaseUrl() {
+  const config = getRestConfig();
+  if (!config.urlValid || !config.keyPresent) return null;
+  return `${config.url}/rest/v1`;
+}
+
+export function getSupabaseRestConfigStatus() {
+  const { urlValid, keyPresent } = getRestConfig();
+  return { urlValid, keyPresent };
 }
 
 export function isSupabaseRestConfigured() {

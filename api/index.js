@@ -51,11 +51,20 @@ var ENV = {
 };
 
 // server/supabase-rest.ts
-function getRestBaseUrl() {
+function getRestConfig() {
   const url = ENV.supabaseUrl.trim().replace(/\/$/, "");
-  const key = ENV.supabaseServiceRoleKey;
-  if (!/^https:\/\/[^/]+\.supabase\.co$/.test(url) || !key) return null;
-  return `${url}/rest/v1`;
+  const urlValid = /^https:\/\/[^/]+\.supabase\.co$/.test(url);
+  const keyPresent = Boolean(ENV.supabaseServiceRoleKey.trim());
+  return { url, urlValid, keyPresent };
+}
+function getRestBaseUrl() {
+  const config = getRestConfig();
+  if (!config.urlValid || !config.keyPresent) return null;
+  return `${config.url}/rest/v1`;
+}
+function getSupabaseRestConfigStatus() {
+  const { urlValid, keyPresent } = getRestConfig();
+  return { urlValid, keyPresent };
 }
 function isSupabaseRestConfigured() {
   return getRestBaseUrl() !== null;
@@ -1394,7 +1403,7 @@ function redirectUri(req) {
 function registerPublisherRoutes(app) {
   app.get("/api/health/database", async (_req, res) => {
     const health = await checkSupabaseRest();
-    return res.status(health.reachable ? 200 : 503).json(health);
+    return res.status(health.reachable ? 200 : 503).json({ ...getSupabaseRestConfigStatus(), ...health });
   });
   app.get("/api/board", async (_req, res) => {
     try {

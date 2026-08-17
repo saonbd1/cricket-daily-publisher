@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { sdk } from "../_core/sdk.js";
 import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger.js";
-import { checkSupabaseRest } from "../supabase-rest.js";
+import { checkSupabaseRest, getSupabaseRestConfigStatus } from "../supabase-rest.js";
 import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db.js";
 import { runPublisher } from "./service.js";
 import { isValidCronAuthorization } from "./cron-auth.js";
@@ -14,7 +14,7 @@ function redirectUri(req: Request) {
 export function registerPublisherRoutes(app: Express) {
   app.get("/api/health/database", async (_req: Request, res: Response) => {
     const health = await checkSupabaseRest();
-    return res.status(health.reachable ? 200 : 503).json(health);
+    return res.status(health.reachable ? 200 : 503).json({ ...getSupabaseRestConfigStatus(), ...health });
   });
 
   app.get("/api/board", async (_req: Request, res: Response) => {
