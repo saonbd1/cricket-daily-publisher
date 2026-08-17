@@ -3,6 +3,7 @@ import { sdk } from "../_core/sdk";
 import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger";
 import { consumeOAuthState, getSettingsByTaskUid, saveOAuthState } from "./db";
 import { runPublisher } from "./service";
+import { isValidCronAuthorization } from "./cron-auth";
 
 function redirectUri(req: Request) {
   const protocol = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0];
@@ -29,6 +30,21 @@ export function registerPublisherRoutes(app: Express) {
       res.status(200).send(`Blogger authorization completed for ${result.blogUrl}. You may close this page.`);
     } catch (error) {
       res.status(500).send(error instanceof Error ? error.message : "Blogger authorization failed");
+    }
+  });
+
+  app.get("/api/cron/publish-cricket", async (req: Request, res: Response) => {
+    try {
+      const expected = process.env.CRON_SECRET;
+      const authorization = req.headers.authorization ?? "";
+      if (!isValidCronAuthorization(expected, authorization)) {
+        return res.status(401).json({ error: "Cron authentication required" });
+      }
+      const result = await runPublisher("scheduled");
+      return res.json(result);
+    } catch (error) {
+      console.error("[Publisher] Vercel Cron run failed", error);
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Cron publisher failed" });
     }
   });
 

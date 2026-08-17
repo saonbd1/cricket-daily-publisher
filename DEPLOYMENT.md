@@ -13,6 +13,7 @@ This service collects CricketData.org fixtures, normalizes them to Bangladesh St
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Web application client secret | Google Cloud Console → APIs & Services → Credentials | Highly sensitive; server-only |
 | `BLOGGER_BLOG` | Optional numeric Blogger blog ID | Leave blank initially; the authorized callback discovers it from the configured Blogspot account | Server-only |
 | `JWT_SECRET` | Session signing secret used by the application shell | Project secret management | Highly sensitive; server-only |
+| `CRON_SECRET` | Bearer secret used by the Vercel Cron publisher endpoint | Generate a random server secret and add it to Vercel | Highly sensitive; server-only |
 
 Do not commit `.env` files, service-role keys, OAuth client secrets, or API keys. Add each value in Vercel Project Settings → Environment Variables for Production and Preview as appropriate, then redeploy.
 
@@ -39,4 +40,4 @@ The active project is named **Cricket Data Publisher**. The publisher tables are
 
 ## Scheduling
 
-Vercel does not provide the Manus Heartbeat identity automatically. Use an external daily cron provider or a Vercel-compatible scheduled trigger to send a POST request to `/api/scheduled/publish-cricket`. The endpoint must be protected with a deployment secret or an equivalent authenticated trigger after the external schedule is selected; do not make the publishing endpoint publicly callable without authentication.
+Vercel Cron is configured in `vercel.json` to call `GET /api/cron/publish-cricket` daily at `18:05 UTC`, which is `00:05 GMT+6`. Add a strong random `CRON_SECRET` to Vercel and configure the cron request with `Authorization: Bearer <CRON_SECRET>` when using an external trigger. The route rejects missing or incorrect credentials. The original Manus Heartbeat callback remains available for deployments that continue using the managed Heartbeat identity.

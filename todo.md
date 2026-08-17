@@ -28,6 +28,6 @@
 - [x] Assess Supabase connection mode and whether the existing MySQL/Drizzle schema can be reused without migration risk.
 - [x] Add Vercel-compatible backend entrypoints and deployment configuration.
 - [x] Add Supabase/Vercel environment-secret documentation and validation tests.
-- [ ] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
+- [x] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
 - [ ] Update Blogger OAuth redirect URI for the chosen Vercel domain.
 - [x] Run tests and save an external-hosting checkpoint.
