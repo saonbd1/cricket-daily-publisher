@@ -89,7 +89,7 @@
 - [ ] Deploy the Supabase pooler fallback and verify production dashboard queries no longer hit database connection errors
 - [ ] Run the live Blogger OAuth flow after deployment and confirm OAuth state and credentials are stored
 - [ ] Execute a real manual publisher run and confirm Blogger posts and persisted run/fixture records
-- [ ] Add a non-secret production health check for database configuration and connectivity diagnostics
+- [x] Add a non-secret production health check for database configuration and connectivity diagnostics
 - [ ] Handle malformed Supabase URL configuration without an unhandled production exception
 - [ ] Correct the Vercel `SUPABASE_URL` value and verify the database health endpoint reaches Supabase
 - [ ] Prevent a stale `SUPABASE_DB_URL` from overriding the current Supabase URL/password fallback
