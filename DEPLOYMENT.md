@@ -41,3 +41,9 @@ The active project is named **Cricket Data Publisher**. The publisher tables are
 ## Scheduling
 
 Vercel Cron is configured in `vercel.json` to call `GET /api/cron/publish-cricket` daily at `18:05 UTC`, which is `00:05 GMT+6`. Add a strong random `CRON_SECRET` to Vercel and configure the cron request with `Authorization: Bearer <CRON_SECRET>` when using an external trigger. The route rejects missing or incorrect credentials. The original Manus Heartbeat callback remains available for deployments that continue using the managed Heartbeat identity.
+
+## Stable Blogger homepage board link
+
+The Blogger theme homepage links to `https://cricket-daily-publisher.vercel.app/api/board`. This endpoint reads `publisher_settings.boardPostUrl` and redirects to the exact current `Daily Cricket Fixture Board` Blogger post. Each publisher run updates or creates the board post and persists its returned Blogger URL in that column, so the theme does not depend on a label archive or a manually changing post URL.
+
+The `publisher_settings.boardPostUrl` column is added by the Supabase migration `add_board_post_url`. Verify that the active Supabase project contains this nullable text column before running the production publisher.

@@ -1,6 +1,6 @@
 import { createBloggerPost, findBloggerPostByMarker, getStoredBloggerSettings, updateBloggerPost } from "./blogger";
 import { fetchFixtures } from "./cricketdata";
-import { createRun, finishRun, saveBloggerPublication, upsertNormalizedFixture } from "./db";
+import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db";
 import type { NormalizedFixture } from "./normalization";
 
 const LOOKBACK_MS = 12 * 60 * 60 * 1000;
@@ -88,10 +88,18 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
     if (existingBoard) {
       const boardResult = await updateBloggerPost(existingBoard.id, boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!);
       bloggerStatusCode = boardResult.statusCode;
+      const boardUrl = boardResult.post.url ?? existingBoard.url;
+      if (boardUrl) {
+        await saveBoardPostUrl(boardUrl);
+        postUrls.push(boardUrl);
+      }
     } else {
       const boardResult = await createBloggerPost(boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!);
       bloggerStatusCode = boardResult.statusCode;
-      if (boardResult.post.url) postUrls.push(boardResult.post.url);
+      if (boardResult.post.url) {
+        await saveBoardPostUrl(boardResult.post.url);
+        postUrls.push(boardResult.post.url);
+      }
     }
     await finishRun(runId, { status: "success", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls) });
     return { runId, status: "success" as const, fixturesFetched, postsCreated, postsUpdated };

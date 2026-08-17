@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { sdk } from "../_core/sdk";
 import { completeBloggerAuthorization, createOAuthState, getBloggerAuthorizationUrl } from "./blogger";
-import { consumeOAuthState, getSettingsByTaskUid, saveOAuthState } from "./db";
+import { consumeOAuthState, getBoardPostUrl, getSettingsByTaskUid, saveOAuthState } from "./db";
 import { runPublisher } from "./service";
 import { isValidCronAuthorization } from "./cron-auth";
 
@@ -11,6 +11,16 @@ function redirectUri(req: Request) {
 }
 
 export function registerPublisherRoutes(app: Express) {
+  app.get("/api/board", async (_req: Request, res: Response) => {
+    try {
+      const boardUrl = await getBoardPostUrl();
+      if (!boardUrl) return res.status(404).send("The Daily Cricket Fixture Board has not been published yet.");
+      return res.redirect(boardUrl);
+    } catch (error) {
+      return res.status(500).send(error instanceof Error ? error.message : "Unable to resolve the fixture board");
+    }
+  });
+
   app.get("/api/blogger/oauth/start", async (req: Request, res: Response) => {
     try {
       const state = createOAuthState();

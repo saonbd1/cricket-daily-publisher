@@ -20,7 +20,7 @@
 
 - [x] Add Blogger post lookup and reconciliation when local fixture state is absent.
 - [x] Embed SportsEvent JSON-LD schema markup in generated match posts.
-- [ ] Connect the existing hardcoded Blogger theme homepage table to the generated Daily Cricket Fixture Board post.
+- [x] Connect the existing hardcoded Blogger theme homepage table to the generated Daily Cricket Fixture Board post.
 - [x] Add a published-post count metric to the dashboard.
 - [x] Extend run history with API/Blogger response codes and created or updated post URLs.
 - [x] Add Vitest coverage for duplicate prevention, status mapping, and create/update publishing behavior.
@@ -31,3 +31,8 @@
 - [x] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
 - [ ] Update Blogger OAuth redirect URI for the chosen Vercel domain.
 - [x] Run tests and save an external-hosting checkpoint.
+- [ ] Fix Vercel production root serving bundled source instead of the application response, then verify the live API and dashboard.
+- [x] Link the Blogger homepage event dashboard to the automated homepage-board post label.
+- [ ] Complete an end-to-end production publisher run and confirm daily scheduling.
+- [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
+- [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.

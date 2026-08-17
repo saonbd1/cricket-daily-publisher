@@ -57,6 +57,7 @@ export const publisherSettings = pgTable("publisher_settings", {
   id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
   blogId: varchar("blogId", { length: 128 }).notNull().unique(),
   blogUrl: text("blogUrl").notNull(),
+  boardPostUrl: text("boardPostUrl"),
   scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
   googleRefreshToken: text("googleRefreshToken"),
   oauthState: varchar("oauthState", { length: 128 }),

@@ -30,6 +30,20 @@ export async function saveScheduleTaskUid(taskUid: string) {
   await db.update(publisherSettings).set({ scheduleCronTaskUid: taskUid }).where(eq(publisherSettings.id, settings.id));
 }
 
+export async function saveBoardPostUrl(boardPostUrl: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const settings = await getOrCreateSettings();
+  await db.update(publisherSettings).set({ boardPostUrl }).where(eq(publisherSettings.id, settings.id));
+}
+
+export async function getBoardPostUrl() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const settings = await getOrCreateSettings();
+  return settings.boardPostUrl;
+}
+
 export async function saveOAuthState(state: string) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
