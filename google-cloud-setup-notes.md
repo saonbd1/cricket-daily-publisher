@@ -25,3 +25,7 @@ External deployment notes (2026-08-17):
 - Vercel account/team dashboard: https://vercel.com/saons-projects-c9a3d307
 - GitHub repository imported into Vercel flow: https://github.com/saonbd1/cricket-daily-publisher
 - Vercel deployment was submitted and showed Loading... Deploying. No environment-variable values were entered at deployment time.
+
+- Vercel verification after redeploy attempt: project URL `https://vercel.com/saons-projects-c9a3d307/cricket-daily-publisher` still shows **No Production Deployment** and says production updates require a push to the main branch. The connected repository is `https://github.com/saonbd1/cricket-daily-publisher`; no production domain is serving traffic yet.
+
+- Vercel deployment verification (2026-08-17): Git settings now show `saonbd1/cricket-daily-publisher` connected. Overview and Deployments still show `No Production Deployment` and state that production updates require a push to the `main` branch. The project has no preview deployments or production traffic yet; a new main-branch commit is required to trigger deployment.
