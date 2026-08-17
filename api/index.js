@@ -518,6 +518,127 @@ function registerOAuthRoutes(app) {
   });
 }
 
+// server/_core/google-oauth.ts
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { parse as parseCookieHeader3 } from "cookie";
+var GOOGLE_STATE_COOKIE = "__Host-google_oauth_state";
+var GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+var GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+var GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
+var ONE_YEAR_MS2 = 365 * 24 * 60 * 60 * 1e3;
+function getQueryParam2(req, key) {
+  const value = req.query[key];
+  return typeof value === "string" ? value : void 0;
+}
+function getRedirectUri(req) {
+  const protocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim() || req.protocol;
+  const host = req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
+  if (!host) throw new Error("OAuth host is missing");
+  return `${protocol}://${host}/api/google/callback`;
+}
+function buildGoogleLoginUrl({ clientId, redirectUri: redirectUri2, nonce }) {
+  const url = new URL(GOOGLE_AUTH_URL);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri2);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("state", encodeOAuthState({ redirectUri: redirectUri2, nonce }));
+  url.searchParams.set("prompt", "select_account");
+  return url.toString();
+}
+function registerGoogleOAuthRoutes(app) {
+  app.get("/api/google/start", (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      res.status(500).json({ error: "Google OAuth client is not configured" });
+      return;
+    }
+    const nonce = randomUUID2();
+    const redirectUri2 = getRedirectUri(req);
+    res.cookie(GOOGLE_STATE_COOKIE, nonce, {
+      httpOnly: true,
+      secure: redirectUri2.startsWith("https://"),
+      sameSite: "lax",
+      path: "/",
+      maxAge: 10 * 60 * 1e3
+    });
+    res.redirect(302, buildGoogleLoginUrl({ clientId, redirectUri: redirectUri2, nonce }));
+  });
+  app.get("/api/google/callback", async (req, res) => {
+    const code = getQueryParam2(req, "code");
+    const state = getQueryParam2(req, "state");
+    if (!code || !state) {
+      res.status(400).json({ error: "code and state are required" });
+      return;
+    }
+    const { nonce, redirectUri: redirectUri2 } = decodeOAuthState(state);
+    const expectedNonce = parseCookieHeader3(req.headers.cookie ?? "")[GOOGLE_STATE_COOKIE];
+    if (!nonce || nonce !== expectedNonce || redirectUri2 !== getRedirectUri(req)) {
+      res.status(403).json({ error: "invalid google oauth state" });
+      return;
+    }
+    res.clearCookie(GOOGLE_STATE_COOKIE, { path: "/", secure: true, sameSite: "lax" });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      res.status(500).json({ error: "Google OAuth client is not configured" });
+      return;
+    }
+    try {
+      const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: redirectUri2
+        })
+      });
+      if (!tokenResponse.ok) throw new Error(`Google token exchange failed: ${tokenResponse.status}`);
+      const token = await tokenResponse.json();
+      if (!token.access_token) throw new Error("Google access token missing");
+      const userResponse = await fetch(GOOGLE_USERINFO_URL, {
+        headers: { authorization: `Bearer ${token.access_token}` }
+      });
+      if (!userResponse.ok) throw new Error(`Google userinfo failed: ${userResponse.status}`);
+      const userInfo = await userResponse.json();
+      if (!userInfo.sub || !userInfo.email || userInfo.email_verified !== true) {
+        res.status(403).json({ error: "verified Google identity required" });
+        return;
+      }
+      const email = userInfo.email.toLowerCase();
+      const adminEmail = process.env.GOOGLE_ADMIN_EMAIL?.toLowerCase();
+      if (!adminEmail || email !== adminEmail) {
+        res.status(403).json({ error: "Google account is not authorized for this dashboard" });
+        return;
+      }
+      const openId = `google:${userInfo.sub}`;
+      await upsertUser({
+        openId,
+        name: userInfo.name || email,
+        email,
+        loginMethod: "google",
+        role: "admin",
+        lastSignedIn: /* @__PURE__ */ new Date()
+      });
+      const sessionToken = await sdk.createSessionToken(openId, {
+        name: userInfo.name || email,
+        expiresInMs: ONE_YEAR_MS2
+      });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...getSessionCookieOptions(req),
+        maxAge: ONE_YEAR_MS2
+      });
+      res.redirect(302, "/");
+    } catch (error) {
+      console.error("[Google OAuth] Callback failed", error);
+      res.status(500).json({ error: "Google OAuth callback failed" });
+    }
+  });
+}
+
 // server/_core/storageProxy.ts
 function registerStorageProxy(app) {
   app.get("/manus-storage/*", async (req, res) => {
@@ -833,7 +954,7 @@ async function listRuns(limit = 20) {
 // server/publisher/blogger.ts
 import crypto from "node:crypto";
 var BLOGGER_SCOPE = "https://www.googleapis.com/auth/blogger";
-var GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+var GOOGLE_TOKEN_URL2 = "https://oauth2.googleapis.com/token";
 var BLOGGER_API = "https://www.googleapis.com/blogger/v3";
 function requireOAuthConfig() {
   if (!ENV.googleClientId || !ENV.googleClientSecret) throw new Error("Google OAuth client settings are not configured");
@@ -856,7 +977,7 @@ function getBloggerAuthorizationUrl(state, redirectUri2) {
 }
 async function exchangeCode(code, redirectUri2) {
   requireOAuthConfig();
-  const response = await fetch(GOOGLE_TOKEN_URL, {
+  const response = await fetch(GOOGLE_TOKEN_URL2, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -873,7 +994,7 @@ async function exchangeCode(code, redirectUri2) {
 }
 async function getAccessToken(refreshToken) {
   requireOAuthConfig();
-  const response = await fetch(GOOGLE_TOKEN_URL, {
+  const response = await fetch(GOOGLE_TOKEN_URL2, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: ENV.googleClientId, client_secret: ENV.googleClientSecret, refresh_token: refreshToken, grant_type: "refresh_token" })
@@ -1314,6 +1435,7 @@ function createApp() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerGoogleOAuthRoutes(app);
   registerPublisherRoutes(app);
   app.use(
     "/api/trpc",

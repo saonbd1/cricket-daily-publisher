@@ -1,6 +1,7 @@
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./_core/oauth.js";
+import { registerGoogleOAuthRoutes } from "./_core/google-oauth.js";
 import { registerStorageProxy } from "./_core/storageProxy.js";
 import { appRouter } from "./routers.js";
 import { createContext } from "./_core/context.js";
@@ -12,6 +13,7 @@ export function createApp() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerGoogleOAuthRoutes(app);
   registerPublisherRoutes(app);
   app.use(
     "/api/trpc",

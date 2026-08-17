@@ -11,6 +11,7 @@ This service collects CricketData.org fixtures, normalizes them to Bangladesh St
 | `CRICKETDATA_API_KEY` | CricketData.org fixture collection | CricketData.org account/API settings | Server-only |
 | `GOOGLE_CLIENT_ID` | Google OAuth Web application client ID | Google Cloud Console → APIs & Services → Credentials | Server-only for this backend |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Web application client secret | Google Cloud Console → APIs & Services → Credentials | Highly sensitive; server-only |
+| `GOOGLE_ADMIN_EMAIL` | Google account permitted to access the private publisher dashboard | The owner’s Google account email | Server-only; exact lowercase match |
 | `BLOGGER_BLOG` | Optional numeric Blogger blog ID | Leave blank initially; the authorized callback discovers it from the configured Blogspot account | Server-only |
 | `JWT_SECRET` | Session signing secret used by the application shell | Project secret management | Highly sensitive; server-only |
 | `CRON_SECRET` | Bearer secret used by the Vercel Cron publisher endpoint | Generate a random server secret and add it to Vercel | Highly sensitive; server-only |
@@ -22,7 +23,9 @@ Do not commit `.env` files, service-role keys, OAuth client secrets, or API keys
 The serverless entrypoint is `api/index.ts`, routed by `vercel.json`. The important endpoints are:
 
 - `GET /api/blogger/oauth/start` starts Blogger authorization.
-- `GET /api/blogger/oauth/callback` receives the Google callback and persists the refresh token.
+- `GET /api/blogger/oauth/callback` receives the Blogger authorization callback and persists the refresh token.
+- `GET /api/google/start` starts dashboard Google Sign-In.
+- `GET /api/google/callback` receives dashboard Google Sign-In and creates the application session cookie.
 - `POST /api/scheduled/publish-cricket` runs the authenticated scheduled publisher.
 - `/api/trpc/*` serves the protected dashboard procedures.
 
@@ -31,6 +34,14 @@ After Vercel assigns the production domain, add this exact redirect URI to the G
 ```text
 https://<your-vercel-domain>/api/blogger/oauth/callback
 ```
+
+For dashboard Google Sign-In, also add this exact production callback URI:
+
+```text
+https://cricket-daily-publisher.vercel.app/api/google/callback
+```
+
+The dashboard login uses `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_ADMIN_EMAIL`. The Blogger callback remains a separate flow and continues to use its existing Blogger authorization state and refresh-token persistence.
 
 The OAuth consent screen must include the Blogger read/write scope required by the publisher. Keep the app in testing or production according to the Google Cloud account’s verification requirements, and add the owner account as a test user when the app is in testing.
 

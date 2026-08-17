@@ -29,20 +29,32 @@
 - [x] Add Vercel-compatible backend entrypoints and deployment configuration.
 - [x] Add Supabase/Vercel environment-secret documentation and validation tests.
 - [x] Replace or supplement Manus Heartbeat with an external cron trigger compatible with Vercel.
-- [ ] Update Blogger OAuth redirect URI for the chosen Vercel domain.
+- [x] Update Blogger OAuth redirect URI for the chosen Vercel domain.
 - [x] Run tests and save an external-hosting checkpoint.
 - [x] Fix Vercel production root serving bundled source instead of the application response, then verify the live API and dashboard.
 - [x] Link the Blogger homepage event dashboard to the automated homepage-board post label.
 - [ ] Complete an end-to-end production publisher run and confirm daily scheduling.
-- [ ] Verify the production `/api/trpc` endpoints return successful responses after the ESM import fix.
-- [ ] Verify additional production dashboard routes beyond `auth.me`, including `publisher.status`, return expected non-500 responses after the final Vercel deployment.
+- [x] Verify the production `/api/trpc` endpoints return successful responses after the ESM import fix.
+- [x] Verify additional production dashboard routes beyond `auth.me`, including `publisher.status`, return expected non-500 responses after the final Vercel deployment.
 - [ ] If protected routes require authentication, sign in on production and confirm dashboard data queries succeed without 500 errors.
 - [ ] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
+- [ ] Complete a real production sign-in at https://cricket-daily-publisher.vercel.app/ and verify the OAuth callback returns to the app.
+- [x] Diagnose the CAPTCHA error shown during the Manus OAuth login.
+- [x] Provide or implement a safe fallback path if CAPTCHA blocks the browser session.
+- [x] Replace Manus dashboard authentication with Google Sign-In while preserving Blogger Google OAuth separately.
+- [x] Add Google OAuth callback, session handling, protected-route integration, and logout behavior.
+- [x] Configure and document Google authentication credentials and redirect URIs for Vercel.
+- [x] Add regression tests for Google OAuth state, callback validation, and authenticated session handling.
+- [ ] After authentication, verify publisher.status and related dashboard data queries return successful non-500 responses and display real data.
+- [ ] Save a checkpoint only after the authenticated production dashboard is verified end-to-end.
+- [ ] Deploy the Google dashboard-auth migration and verify `/api/google/start` redirects to Google with the production callback.
+- [ ] Complete Google sign-in on production and verify the protected dashboard procedures load real data.
+
 - [x] Diagnose and fix the production login button so it launches the configured OAuth flow.
 - [x] Add regression coverage for the production login launch URL and click handler behavior.
-- [ ] Deploy the login fix to Vercel and verify the live Sign in button redirects to the OAuth provider.
-- [ ] Deploy the final OAuth-start fallback fix to Vercel and verify `/api/oauth/start` returns HTTP 302 with the production callback URL.
-- [ ] Save a checkpoint after the final OAuth fallback change and verify the live Sign in button opens the OAuth provider.
+- [x] Deploy the login fix to Vercel and verify the live Sign in button redirects to the OAuth provider.
+- [x] Deploy the final OAuth-start fallback fix to Vercel and verify `/api/oauth/start` returns HTTP 302 with the production callback URL.
+- [x] Save a checkpoint after the final OAuth fallback change and verify the live Sign in button opens the OAuth provider.
 - [x] Add a non-secret runtime fallback for the known Manus OAuth application ID when external Vercel environment injection is unavailable.
 - [x] Add a client-side regression test for `startLogin()` covering the nonce cookie and navigation URL.
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
