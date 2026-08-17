@@ -35,6 +35,12 @@
 - [x] Link the Blogger homepage event dashboard to the automated homepage-board post label.
 - [ ] Complete an end-to-end production publisher run and confirm daily scheduling.
 - [ ] Verify the production `/api/trpc` endpoints return successful responses after the ESM import fix.
+- [ ] Verify additional production dashboard routes beyond `auth.me`, including `publisher.status`, return expected non-500 responses after the final Vercel deployment.
+- [ ] If protected routes require authentication, sign in on production and confirm dashboard data queries succeed without 500 errors.
 - [ ] Sign in on the live Vercel deployment and confirm the dashboard loads real status, fixtures, and run data without 500 errors.
+- [ ] Diagnose and fix the production login button so it launches the configured OAuth flow.
+- [ ] Add regression coverage for the production login launch URL and click handler behavior.
+- [ ] Deploy the login fix to Vercel and verify the live Sign in button redirects to the OAuth provider.
+- [ ] Add a client-side regression test for `startLogin()` covering the nonce cookie and navigation URL.
 - [x] Add a deterministic direct-link mechanism from the Blogger homepage dashboard to the actual Daily Cricket Fixture Board post URL, not only the homepage-board label archive.
 - [x] Persist the board post URL or slug in publisher state and document how the theme uses that exact post link.
