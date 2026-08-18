@@ -45,3 +45,7 @@ Latest local repair prepared after this observation:
 - Added a dynamic `data:blog.reportAbuseUrl` footer link.
 - XML validator passes and all 38 Vitest tests pass.
 - The revised XML still requires one more manual Blogger upload and live verification.
+
+## Final-upload verification
+
+After the final manual upload, both the homepage and the direct Daily Cricket Fixture Board URL still render the clean shell, date, ticker, navigation, Hall of Fame, and footer links, but neither renders any Blogger post body or fixture table. The live DOM remains a `main no-items` Blog section. This confirms the remaining issue is the Blogger Blog widget data pipeline or template contract, not the publisher’s post creation or the `/api/board` redirect. The local template includes the latest default-markup, widget-settings, `super.main`, and `postCommentsAndAd` repair and passes 38 Vitest tests, but Blogger has not yet accepted that pipeline in production.

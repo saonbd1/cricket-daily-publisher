@@ -133,3 +133,4 @@
 - [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
+- [x] Move the clean theme’s Blogger `b:defaultmarkups` block inside `<head>` and validate the corrected Blog-widget contract with all 38 tests

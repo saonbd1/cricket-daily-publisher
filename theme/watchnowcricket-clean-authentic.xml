@@ -46,7 +46,6 @@
     .hidden-seo{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
     @media(max-width:700px){.site-shell{width:min(100% - 20px,var(--max))}.site-header{margin-top:14px;padding:28px 22px;border-radius:20px}.site-nav{justify-content:center;gap:12px;margin-bottom:24px;font-size:9px}.post-header{padding:22px 18px 10px}.post-body{padding:10px 18px 24px}.post-body table,.post-body thead,.post-body tbody,.post-body tr,.post-body td{display:block}.post-body thead{display:none}.post-body tr{padding:13px 0;border-top:1px solid var(--line)}.post-body tr:first-child{border-top:0}.post-body td{padding:3px 0;border:0}.hall-of-fame{display:block;padding:18px}.legend-grid{grid-template-columns:repeat(3,1fr);margin-top:16px}.legend-card{display:block;text-align:center}.legend-card span{margin:0 auto 5px}.site-footer{display:block}.site-footer span{display:block;margin-top:6px}}
   ]]></b:skin>
-</head>
   <b:defaultmarkups>
     <b:defaultmarkup type='Blog'>
       <b:includable id='main'>
@@ -61,6 +60,7 @@
       </b:includable>
     </b:defaultmarkup>
   </b:defaultmarkups>
+</head>
 <body>
   <div class='ticker'>LIVE CRICKET • SCORE • STREAM</div>
   <div class='site-shell'>
