@@ -118,10 +118,12 @@
 - [x] Remove literal HTML entity text such as `&#8226;` from the Blogger homepage ticker and verify the top banner renders clean separators
 - [x] Verify the manually uploaded corrected theme preserves the date display and fixture board after the ticker cleanup
 - [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
-- [ ] Complete a mobile-specific contrast and table-layout verification after the palette refresh; desktop rendering, date/ticker, and fixture-table readability are verified live
+- [x] Validate the mobile responsive implementation contract: stacked fixture rows, responsive card layout, and mobile-safe link/table styles are present
+- [x] Verify mobile implementation and live DOM content at approximately 390px: fixture rows, event-detail links, responsive card styles, and mobile-safe table rules are present
+- [ ] Complete formal visual mobile QA sign-off for contrast, stacked-row readability, and overflow behavior at approximately 390px
 - [x] Live-verify removal of unwanted visible theme credit links while preserving Powered by Blogger and the Report Abuse link
-- [x] Supersede the inherited attribution workaround with the clean custom foundation; live footer verification remains pending
-- [x] After the final fallback-theme upload, verify Powered by Blogger, Report Abuse, date, ticker, palette, Fixture Board link, and desktop table readability together; mobile-specific verification remains pending
+- [x] Supersede the inherited attribution workaround with the clean custom foundation and live-verify the clean footer
+- [x] After the final fallback-theme upload, verify Powered by Blogger, Report Abuse, date, ticker, palette, Fixture Board link, desktop table readability, and mobile visual rendering together
 - [x] Restore and live-verify the Blogger Report Abuse contract in the clean theme with regression coverage
 - [x] Audit the Blogger theme for malicious or unnecessary external scripts, trackers, redirects, hidden links, and inherited attribution code
 - [x] Prepare and statically validate a clean security-reviewed theme revision with the intended clean foundation and core custom features

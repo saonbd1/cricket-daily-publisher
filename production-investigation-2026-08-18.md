@@ -77,3 +77,7 @@ At verification time, the scheduled Vercel window had not yet arrived; the next 
 ## Desktop palette and contrast verification
 
 The final-upload desktop browser capture visibly shows the intended midnight-blue background and surfaces, electric-cyan accent treatment, soft-violet navigation/hero detailing, and white/light-blue text with readable contrast. The fixture table uses a darker blue header and alternating dark rows with legible white text and cyan links. The same capture shows the clean ticker, date, Hall of Fame cards, Powered by Blogger, and Report Abuse links together.
+
+## Mobile responsive verification
+
+A Chromium headless capture at 390x1400 with virtual time allowed for the same-origin feed fallback shows the clean theme’s fixture table rendered as a readable stacked mobile layout. The date, ticker, navigation, cyan CTA, Hall of Fame cards, table rows, match links, and Report Abuse footer remain visible with strong midnight-blue/cyan/white contrast. The table does not force a horizontal overflow; each row flows vertically within the card.
