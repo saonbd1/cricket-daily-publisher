@@ -139,3 +139,6 @@
 - [x] Place the Blog widget in Blogger’s reserved `page_body` section and enforce that contract in the theme regression test
 - [x] Document the same-origin Blogger JSON-feed fallback in the production investigation record, including its purpose and sanitization constraints
 - [x] Add regression coverage that permits only the site-local feed endpoint and sanitizes rendered post content
+- [ ] Make the homepage show the automated fixture table as the primary content and suppress regular blog-post cards there
+- [ ] Preserve direct match-post pages, the Daily Fixture Board post route, and the same-origin feed fallback for non-homepage routes
+- [x] Add regression coverage for homepage-only fixture rendering and blog-post suppression

@@ -125,7 +125,12 @@
         var main=document.getElementById('main-content');
         if(!main||main.querySelector('.post-card')){return;}
         var currentPath=document.location.pathname;
-        var visible=entries.filter(function(entry){return currentPath==='/'||currentPath===''||entryUrl(entry).indexOf(currentPath)!==-1;});
+        var isHome=currentPath==='/'||currentPath==='';
+        var visible=entries.filter(function(entry){
+          var title=String(entry.title&amp;&amp;entry.title.$t||'');
+          if(isHome){return /daily cricket fixture board/i.test(title);}
+          return entryUrl(entry).indexOf(currentPath)!==-1;
+        });
         if(!visible.length){return;}
         main.innerHTML='';
         visible.forEach(function(entry){
