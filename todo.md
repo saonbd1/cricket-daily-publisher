@@ -131,3 +131,4 @@
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
 - [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
 - [x] Add regression coverage for the fixture-table rendering contract and Vercel cron configuration
+- [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
