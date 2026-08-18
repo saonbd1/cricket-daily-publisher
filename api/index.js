@@ -917,6 +917,8 @@ async function upsertNormalizedFixture(fixture) {
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
+    verificationStatus: fixture.verificationStatus,
+    sourceEvidence: JSON.stringify(fixture.sourceEvidence),
     lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
@@ -943,6 +945,21 @@ async function saveBloggerPublication(fixtureId, postId, postUrl, firstPublished
     },
     prefer: "return=representation"
   });
+}
+async function listVerificationQueue(limit = 100) {
+  const rows = await supabaseRest("fixtures", {
+    query: {
+      select: "*,tournament:tournaments(*)",
+      verificationStatus: "neq.verified",
+      order: "updatedAt.desc",
+      limit
+    }
+  });
+  return rows.filter((row) => row.tournament).map((row) => ({
+    fixture: row,
+    tournament: row.tournament,
+    sourceEvidence: row.sourceEvidence ? JSON.parse(row.sourceEvidence) : []
+  }));
 }
 async function listRecentFixtures(limit = 100) {
   const rows = await supabaseRest("fixtures", {
@@ -1119,22 +1136,112 @@ function normalizeFixture(input) {
     localTimeGmt6: `${parts.hour === "24" ? "00" : parts.hour}:${parts.minute}`,
     status: normalizeStatus(input.status),
     scoreSummary: scoreText(input.score),
-    matchUrl: input.matchUrl?.trim() || null
+    matchUrl: input.matchUrl?.trim() || null,
+    verificationStatus: "verified",
+    sourceEvidence: []
   };
 }
 
 // server/publisher/cricketdata.ts
 var API_BASE = "https://api.cricapi.com/v1";
+var PAGE_SIZE = 25;
+var MAX_PAGES = 12;
 async function fetchFixtures() {
   if (!ENV.cricketDataApiKey) throw new Error("CRICKETDATA_API_KEY is not configured");
-  const url = `${API_BASE}/matches?apikey=${encodeURIComponent(ENV.cricketDataApiKey)}&offset=0`;
+  const fixtures = [];
+  let statusCode = 200;
+  let pagesFetched = 0;
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const offset = page * PAGE_SIZE;
+    const url = `${API_BASE}/matches?apikey=${encodeURIComponent(ENV.cricketDataApiKey)}&offset=${offset}`;
+    const response = await fetch(url, { headers: { accept: "application/json" } });
+    const body = await response.json();
+    statusCode = response.status;
+    pagesFetched += 1;
+    if (!response.ok || body.status === "failure") {
+      throw new Error(`CricketData request failed (${response.status}): ${body.reason ?? "unknown provider error"}`);
+    }
+    const rows = body.data ?? [];
+    for (const row of rows) {
+      try {
+        const normalized = normalizeFixture(row);
+        normalized.sourceEvidence = ["cricketdata"];
+        fixtures.push(normalized);
+      } catch {
+      }
+    }
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return { fixtures, statusCode, pagesFetched };
+}
+
+// server/publisher/thesportsdb.ts
+var API_BASE2 = "https://www.thesportsdb.com/api/v1/json/123";
+async function fetchTheSportsDbFixtures(localDateGmt6) {
+  const url = `${API_BASE2}/eventsday.php?d=${encodeURIComponent(localDateGmt6)}&s=Cricket`;
   const response = await fetch(url, { headers: { accept: "application/json" } });
   const body = await response.json();
-  if (!response.ok || body.status === "failure") {
-    throw new Error(`CricketData request failed (${response.status}): ${body.reason ?? "unknown provider error"}`);
-  }
-  const fixtures = (body.data ?? []).map(normalizeFixture);
+  if (!response.ok) throw new Error(`TheSportsDB request failed (${response.status})`);
+  const fixtures = (body.events ?? []).flatMap((event) => {
+    if (!event.strTimestamp || !event.strHomeTeam || !event.strAwayTeam) return [];
+    try {
+      return [normalizeFixture({
+        id: `thesportsdb:${event.idEvent ?? event.strEvent}`,
+        name: event.strEvent,
+        dateTimeGMT: event.strTimestamp.endsWith("Z") ? event.strTimestamp : `${event.strTimestamp}Z`,
+        league: { name: event.strLeague },
+        teams: [event.strHomeTeam, event.strAwayTeam],
+        venue: event.strVenue,
+        status: event.strStatus
+      })];
+    } catch {
+      return [];
+    }
+  });
   return { fixtures, statusCode: response.status };
+}
+
+// server/publisher/reconciliation.ts
+function teamKey(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+function pairKey(fixture) {
+  return [teamKey(fixture.teamOne), teamKey(fixture.teamTwo)].sort().join("|");
+}
+function closeInTime(a, b) {
+  return Math.abs(a.startTimeUtc.getTime() - b.startTimeUtc.getTime()) <= 2 * 60 * 60 * 1e3;
+}
+function merge(primary, secondary, status) {
+  return {
+    ...primary,
+    verificationStatus: status,
+    sourceEvidence: Array.from(/* @__PURE__ */ new Set([...primary.sourceEvidence, ...secondary.sourceEvidence])),
+    matchUrl: primary.matchUrl ?? secondary.matchUrl,
+    venue: primary.venue !== "Venue TBC" ? primary.venue : secondary.venue
+  };
+}
+function reconcileFixtures(primary, secondary) {
+  const output = [];
+  const usedSecondary = /* @__PURE__ */ new Set();
+  for (const fixture of primary) {
+    const matchIndex = secondary.findIndex((candidate, index) => !usedSecondary.has(index) && pairKey(candidate) === pairKey(fixture) && closeInTime(candidate, fixture));
+    if (matchIndex >= 0) {
+      usedSecondary.add(matchIndex);
+      output.push(merge(fixture, secondary[matchIndex], "verified"));
+      continue;
+    }
+    const conflicting = secondary.some((candidate, index) => !usedSecondary.has(index) && pairKey(candidate) === pairKey(fixture));
+    output.push({ ...fixture, verificationStatus: conflicting ? "conflict" : "candidate" });
+  }
+  secondary.forEach((fixture, index) => {
+    if (!usedSecondary.has(index)) output.push({ ...fixture, verificationStatus: "candidate" });
+  });
+  return {
+    fixtures: output,
+    verified: output.filter((fixture) => fixture.verificationStatus === "verified").length,
+    candidates: output.filter((fixture) => fixture.verificationStatus === "candidate").length,
+    conflicts: output.filter((fixture) => fixture.verificationStatus === "conflict").length
+  };
 }
 
 // server/publisher/service.ts
@@ -1144,6 +1251,19 @@ var BOARD_MARKER = 'data-cricket-board="daily"';
 function inPublishingWindow(fixture, now = Date.now()) {
   const start = fixture.startTimeUtc.getTime();
   return fixture.status === "live" || start >= now - LOOKBACK_MS && start <= now + LOOKAHEAD_MS;
+}
+function publishingDates(now = /* @__PURE__ */ new Date()) {
+  const dates = /* @__PURE__ */ new Set();
+  for (let offset = -1; offset <= 8; offset += 1) {
+    const date = new Date(now.getTime() + offset * 24 * 60 * 60 * 1e3);
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+    const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+    dates.add(`${values.year}-${values.month}-${values.day}`);
+  }
+  return Array.from(dates);
+}
+function isPublishable(fixture) {
+  return fixture.verificationStatus === "verified";
 }
 function postTitle(fixture) {
   return `${fixture.teamOne} vs ${fixture.teamTwo} \u2014 ${fixture.localDateGmt6} ${fixture.localTimeGmt6} GMT+6`;
@@ -1185,10 +1305,16 @@ async function runPublisher(trigger) {
   try {
     const [source, settings] = await Promise.all([fetchFixtures(), getStoredBloggerSettings()]);
     apiStatusCode = source.statusCode;
-    const candidates = source.fixtures.filter((fixture) => inPublishingWindow(fixture));
-    fixturesFetched = candidates.length;
-    for (const normalized of candidates) {
+    const primaryCandidates = source.fixtures.filter((fixture) => inPublishingWindow(fixture));
+    const dates = publishingDates();
+    const secondaryResults = await Promise.all(dates.map((date) => fetchTheSportsDbFixtures(date)));
+    const secondaryFixtures = secondaryResults.flatMap((result) => result.fixtures);
+    const coverage = dates.map((date, index) => ({ date, primary: primaryCandidates.filter((fixture) => fixture.localDateGmt6 === date).length, secondary: secondaryResults[index].fixtures.filter((fixture) => fixture.localDateGmt6 === date).length }));
+    const reconciled = reconcileFixtures(primaryCandidates, secondaryFixtures);
+    fixturesFetched = reconciled.fixtures.length;
+    for (const normalized of reconciled.fixtures) {
       const saved = await upsertNormalizedFixture(normalized);
+      if (!isPublishable(normalized)) continue;
       const title = postTitle(normalized);
       const content = postContent(normalized);
       const labels = ["Cricket", normalized.tournamentName, normalized.localDateGmt6];
@@ -1229,8 +1355,11 @@ async function runPublisher(trigger) {
         postUrls.push(boardResult.post.url);
       }
     }
-    await finishRun(runId, { status: "success", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls) });
-    return { runId, status: "success", fixturesFetched, postsCreated, postsUpdated };
+    const coverageMessage = coverage.map((row) => `${row.date}:primary=${row.primary},secondary=${row.secondary}`).join(";");
+    const verificationMessage = `verification: verified=${reconciled.verified}, candidates=${reconciled.candidates}, conflicts=${reconciled.conflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}`;
+    const finalStatus = reconciled.candidates > 0 || reconciled.conflicts > 0 ? "partial" : "success";
+    await finishRun(runId, { status: finalStatus, fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: verificationMessage });
+    return { runId, status: finalStatus, fixturesFetched, postsCreated, postsUpdated, verification: reconciled };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await finishRun(runId, { status: fixturesFetched > 0 ? "partial" : "failed", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: message });
@@ -1353,6 +1482,7 @@ var appRouter = router({
       }
     }),
     fixtures: adminProcedure.query(() => listRecentFixtures()),
+    verificationQueue: adminProcedure.query(() => listVerificationQueue()),
     runs: adminProcedure.query(() => listRuns()),
     runNow: adminProcedure.mutation(() => runPublisher("manual")),
     scheduleDaily: adminProcedure.input(z2.object({ cron: z2.string().default("0 0 3 * * *") })).mutation(async ({ ctx, input }) => {

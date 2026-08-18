@@ -144,3 +144,11 @@
 - [x] Add regression coverage for homepage-only fixture rendering and blog-post suppression
 - [x] Center-align homepage and fixture content consistently across hero, navigation, date, Hall of Fame, tables, buttons, statuses, and footer while preserving readable link targets
 - [x] Add regression coverage for the centered alignment contract and verify desktop/mobile readability
+- [x] Cross-check the current Bangladesh-date fixture board against live CricketData and independent public schedule sources, then document missing or unverified events
+- [x] Expand fixture collection beyond the current limited CricketData page, add date-aware coverage diagnostics, and preserve duplicate-safe publishing for newly discovered events
+- [x] Compare free cricket-data providers for schedule completeness, API limits, licensing, reliability, and integration fit
+- [x] Add a permitted public-source verification pipeline that reconciles candidate fixtures with CricketData, flags conflicts, and publishes only verified events to the Blogger table
+- [x] Implement CricketData pagination and TheSportsDB secondary-source fetching with Bangladesh-date normalization
+- [x] Add verified, candidate, and conflict reconciliation states with source evidence and safe identity matching
+- [x] Keep Candidate and Conflict events out of Blogger while exposing review diagnostics in the dashboard/run logs
+- [x] Add schema migration, Vitest coverage, and production-safe validation for verified-only publishing

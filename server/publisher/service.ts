@@ -1,5 +1,7 @@
 import { createBloggerPost, findBloggerPostByMarker, getStoredBloggerSettings, updateBloggerPost } from "./blogger.js";
 import { fetchFixtures } from "./cricketdata.js";
+import { fetchTheSportsDbFixtures } from "./thesportsdb.js";
+import { reconcileFixtures } from "./reconciliation.js";
 import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db.js";
 import type { NormalizedFixture } from "./normalization.js";
 
@@ -10,6 +12,25 @@ const BOARD_MARKER = 'data-cricket-board="daily"';
 function inPublishingWindow(fixture: NormalizedFixture, now = Date.now()) {
   const start = fixture.startTimeUtc.getTime();
   return fixture.status === "live" || (start >= now - LOOKBACK_MS && start <= now + LOOKAHEAD_MS);
+}
+
+function publishingDates(now = new Date()) {
+  const dates = new Set<string>();
+  for (let offset = -1; offset <= 8; offset += 1) {
+    const date = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+    const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+    dates.add(`${values.year}-${values.month}-${values.day}`);
+  }
+  return Array.from(dates);
+}
+
+export function isPublishable(fixture: NormalizedFixture) {
+  return fixture.verificationStatus === "verified";
+}
+
+export function publishableFixtures(fixtures: NormalizedFixture[]) {
+  return fixtures.filter(isPublishable);
 }
 
 function postTitle(fixture: NormalizedFixture) {
@@ -57,10 +78,16 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
   try {
     const [source, settings] = await Promise.all([fetchFixtures(), getStoredBloggerSettings()]);
     apiStatusCode = source.statusCode;
-    const candidates = source.fixtures.filter(fixture => inPublishingWindow(fixture));
-    fixturesFetched = candidates.length;
-    for (const normalized of candidates) {
+    const primaryCandidates = source.fixtures.filter(fixture => inPublishingWindow(fixture));
+    const dates = publishingDates();
+    const secondaryResults = await Promise.all(dates.map((date) => fetchTheSportsDbFixtures(date)));
+    const secondaryFixtures = secondaryResults.flatMap((result) => result.fixtures);
+    const coverage = dates.map((date, index) => ({ date, primary: primaryCandidates.filter((fixture) => fixture.localDateGmt6 === date).length, secondary: secondaryResults[index].fixtures.filter((fixture) => fixture.localDateGmt6 === date).length }));
+    const reconciled = reconcileFixtures(primaryCandidates, secondaryFixtures);
+    fixturesFetched = reconciled.fixtures.length;
+    for (const normalized of reconciled.fixtures) {
       const saved = await upsertNormalizedFixture(normalized);
+      if (!isPublishable(normalized)) continue;
       const title = postTitle(normalized);
       const content = postContent(normalized);
       const labels = ["Cricket", normalized.tournamentName, normalized.localDateGmt6];
@@ -101,8 +128,11 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
         postUrls.push(boardResult.post.url);
       }
     }
-    await finishRun(runId, { status: "success", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls) });
-    return { runId, status: "success" as const, fixturesFetched, postsCreated, postsUpdated };
+    const coverageMessage = coverage.map((row) => `${row.date}:primary=${row.primary},secondary=${row.secondary}`).join(";");
+    const verificationMessage = `verification: verified=${reconciled.verified}, candidates=${reconciled.candidates}, conflicts=${reconciled.conflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}`;
+    const finalStatus = reconciled.candidates > 0 || reconciled.conflicts > 0 ? "partial" : "success";
+    await finishRun(runId, { status: finalStatus, fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: verificationMessage });
+    return { runId, status: finalStatus as "success" | "partial", fixturesFetched, postsCreated, postsUpdated, verification: reconciled };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await finishRun(runId, { status: fixturesFetched > 0 ? "partial" : "failed", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: message });

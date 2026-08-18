@@ -26,6 +26,8 @@ export type NormalizedFixture = {
   status: "scheduled" | "live" | "completed" | "postponed" | "cancelled";
   scoreSummary: string | null;
   matchUrl: string | null;
+  verificationStatus: "verified" | "candidate" | "conflict";
+  sourceEvidence: string[];
 };
 
 function dateParts(date: Date) {
@@ -92,5 +94,7 @@ export function normalizeFixture(input: ProviderFixture): NormalizedFixture {
     status: normalizeStatus(input.status),
     scoreSummary: scoreText(input.score),
     matchUrl: input.matchUrl?.trim() || null,
+    verificationStatus: "verified",
+    sourceEvidence: [],
   };
 }

@@ -97,6 +97,8 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
+    verificationStatus: fixture.verificationStatus,
+    sourceEvidence: JSON.stringify(fixture.sourceEvidence),
     lastSyncedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -129,6 +131,22 @@ export async function saveBloggerPublication(
     },
     prefer: "return=representation",
   });
+}
+
+export async function listVerificationQueue(limit = 100) {
+  const rows = await supabaseRest<Array<Fixture & { tournament?: Tournament }>>("fixtures", {
+    query: {
+      select: "*,tournament:tournaments(*)",
+      verificationStatus: "neq.verified",
+      order: "updatedAt.desc",
+      limit,
+    },
+  });
+  return rows.filter((row) => row.tournament).map((row) => ({
+    fixture: row,
+    tournament: row.tournament!,
+    sourceEvidence: row.sourceEvidence ? JSON.parse(row.sourceEvidence) as string[] : [],
+  }));
 }
 
 export async function listRecentFixtures(limit = 100): Promise<FixtureWithTournament[]> {

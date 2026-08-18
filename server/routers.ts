@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { adminProcedure, publicProcedure, router } from "./_core/trpc.js";
-import { listRecentFixtures, listRuns } from "./publisher/db.js";
+import { listRecentFixtures, listRuns, listVerificationQueue } from "./publisher/db.js";
 import { getStoredBloggerSettings } from "./publisher/blogger.js";
 import { runPublisher } from "./publisher/service.js";
 import { createHeartbeatJob } from "./_core/heartbeat.js";
@@ -30,6 +30,7 @@ export const appRouter = router({
       }
     }),
     fixtures: adminProcedure.query(() => listRecentFixtures()),
+    verificationQueue: adminProcedure.query(() => listVerificationQueue()),
     runs: adminProcedure.query(() => listRuns()),
     runNow: adminProcedure.mutation(() => runPublisher("manual")),
     scheduleDaily: adminProcedure.input(z.object({ cron: z.string().default("0 0 3 * * *") })).mutation(async ({ ctx, input }) => {
