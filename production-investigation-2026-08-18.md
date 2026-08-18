@@ -67,3 +67,13 @@ The public feed https://watchnowcricket.blogspot.com/feeds/posts/default?alt=jso
 The clean theme now includes a deliberate fallback for the case where Blogger’s native Blog widget compiles with `no-items` even though the public feed contains published posts. On DOM ready, it requests only the current blog’s relative endpoint `/feeds/posts/default?alt=json&max-results=20` with `credentials: 'same-origin'`. On the homepage it renders the returned published entries; on a direct post path it filters to the matching entry URL. Before inserting post content, it removes scripts, frames, objects, embeds, forms, style/link/meta nodes, inline event-handler attributes, and `javascript:` hrefs. Titles, URLs, and dates are HTML-escaped. The native Blogger widget remains the fallback if the feed request fails.
 
 This code is intentionally limited to the site-local feed and contains no third-party fetch, redirect, tracker, or external executable asset. It requires one final manual Blogger upload and live verification on both the homepage and the Daily Cricket Fixture Board route.
+
+## Final feed-fallback live verification
+
+After the final feed-fallback upload, the homepage rendered the live date `Tuesday, August 18, 2026`, the clean `LIVE CRICKET • SCORE • STREAM` ticker, navigation, Hall of Fame section, and the published Daily Cricket Fixture Board table with two fixtures. The direct `/api/board` route resolved to the board post and rendered the same table. The direct post visibly preserved `Powered by Blogger` and `Report Abuse`; no inherited `Theme images by rami_ba` credit appeared. The public feed content and the live rendered table now agree.
+
+At verification time, the scheduled Vercel window had not yet arrived; the next configured run remains 18:05 UTC / 00:05 Bangladesh time.
+
+## Desktop palette and contrast verification
+
+The final-upload desktop browser capture visibly shows the intended midnight-blue background and surfaces, electric-cyan accent treatment, soft-violet navigation/hero detailing, and white/light-blue text with readable contrast. The fixture table uses a darker blue header and alternating dark rows with legible white text and cyan links. The same capture shows the clean ticker, date, Hall of Fame cards, Powered by Blogger, and Report Abuse links together.

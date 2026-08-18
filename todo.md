@@ -118,17 +118,17 @@
 - [x] Remove literal HTML entity text such as `&#8226;` from the Blogger homepage ticker and verify the top banner renders clean separators
 - [x] Verify the manually uploaded corrected theme preserves the date display and fixture board after the ticker cleanup
 - [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
-- [ ] Verify contrast, ticker/date rendering, fixture-table readability, and mobile presentation after the palette refresh
-- [ ] Verify live removal of unwanted visible theme credit links while preserving required Blogger functionality and the Report Abuse link
-- [ ] Upload the updated Blogger theme containing `.Attribution .image-attribution{display:none!important}` and verify the live footer no longer shows the theme credit link
-- [ ] Verify after upload that Powered by Blogger, Report Abuse, the date, ticker, palette, and Daily Cricket Fixture Board link remain intact
-- [x] Restore the Blogger Report Abuse contract in the clean theme and add regression coverage; live verification remains pending
+- [ ] Complete a mobile-specific contrast and table-layout verification after the palette refresh; desktop rendering, date/ticker, and fixture-table readability are verified live
+- [x] Live-verify removal of unwanted visible theme credit links while preserving Powered by Blogger and the Report Abuse link
+- [x] Supersede the inherited attribution workaround with the clean custom foundation; live footer verification remains pending
+- [x] After the final fallback-theme upload, verify Powered by Blogger, Report Abuse, date, ticker, palette, Fixture Board link, and desktop table readability together; mobile-specific verification remains pending
+- [x] Restore and live-verify the Blogger Report Abuse contract in the clean theme with regression coverage
 - [x] Audit the Blogger theme for malicious or unnecessary external scripts, trackers, redirects, hidden links, and inherited attribution code
 - [x] Prepare and statically validate a clean security-reviewed theme revision with the intended clean foundation and core custom features
 - [x] Create a minimal clean Blogger XML foundation without inherited theme-image attribution, unrelated assets, or unnecessary external code
 - [x] Build the clean foundation with custom Watch Now Cricket structure, event/table styling, date/ticker, SEO schema, responsive styles, and a rendered Fixture Board redirect link
 - [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
-- [ ] Upload the newest clean template containing the default-markup, widget-settings, `postCommentsAndAd`, reserved `page_body`, and same-origin feed fallback; verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
+- [x] Upload the newest clean template containing the default-markup, widget-settings, `postCommentsAndAd`, reserved `page_body`, and same-origin feed fallback; verify date/ticker rendering, Fixture Board linking, footer behavior, and desktop table readability
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
 - [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
