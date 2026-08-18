@@ -8,12 +8,17 @@ describe("Vercel deployment configuration", () => {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as {
       outputDirectory?: string;
       rewrites?: Array<{ source: string; destination: string }>;
+      crons?: Array<{ path: string; schedule: string }>;
     };
 
     expect(config.outputDirectory).toBe("dist/public");
     expect(config.rewrites).toContainEqual({
       source: "/api/:path*",
       destination: "/api/index.js",
+    });
+    expect(config.crons).toContainEqual({
+      path: "/api/cron/publish-cricket",
+      schedule: "5 18 * * *",
     });
   });
 });
