@@ -77,7 +77,7 @@
       <div class='legend-grid'><div class='legend-card'><span>ST</span><strong>Sachin</strong></div><div class='legend-card'><span>BL</span><strong>Lara</strong></div><div class='legend-card'><span>MA</span><strong>Murali</strong></div><div class='legend-card'><span>WA</span><strong>Wasim</strong></div><div class='legend-card'><span>MS</span><strong>Dhoni</strong></div></div>
     </section>
     <main class='content-grid' id='main-content'>
-      <b:section id='main' class='main' name='Main Content' showaddelement='false'>
+      <b:section ads='true' id='page_body' class='main' name='Page Body' showaddelement='false'>
         <b:widget id='Blog1' locked='true' title='Cricket Events' type='Blog' visible='true'>
           <b:widget-settings>
             <b:widget-setting name='showDateHeader'>false</b:widget-setting>

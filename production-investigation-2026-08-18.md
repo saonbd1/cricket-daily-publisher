@@ -49,3 +49,7 @@ Latest local repair prepared after this observation:
 ## Final-upload verification
 
 After the final manual upload, both the homepage and the direct Daily Cricket Fixture Board URL still render the clean shell, date, ticker, navigation, Hall of Fame, and footer links, but neither renders any Blogger post body or fixture table. The live DOM remains a `main no-items` Blog section. This confirms the remaining issue is the Blogger Blog widget data pipeline or template contract, not the publisher’s post creation or the `/api/board` redirect. The local template includes the latest default-markup, widget-settings, `super.main`, and `postCommentsAndAd` repair and passes 38 Vitest tests, but Blogger has not yet accepted that pipeline in production.
+
+## Head-fix upload verification
+
+After the upload described as `uploaded head fixed`, the homepage and direct board URL still show the clean shell with the date, ticker, navigation, Hall of Fame, and footer links, but no fixture post body or table rows. The direct board URL remains https://watchnowcricket.blogspot.com/2026/08/daily-cricket-fixture-board_0385420378.html via https://cricket-daily-publisher.vercel.app/api/board. The rendered content still has no post title or post body beneath the shell, so the `b:defaultmarkups` placement fix alone did not make Blogger supply post data.

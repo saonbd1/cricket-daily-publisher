@@ -9,6 +9,7 @@ describe("clean Blogger theme contract", () => {
     expect(theme).toContain("<b:includable id='main'>");
     expect(theme).toContain("<b:include name='super.main'/>");
     expect(theme).toContain("<b:defaultmarkup type='Blog'>");
+    expect(theme).toContain("<b:section ads='true' id='page_body' class='main' name='Page Body' showaddelement='false'>");
     expect(theme).toContain("<b:includable id='post' var='post'>");
     expect(theme).toContain("<div class='post-body'><data:post.body/></div>");
   });

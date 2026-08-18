@@ -134,3 +134,4 @@
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
 - [x] Move the clean theme’s Blogger `b:defaultmarkups` block inside `<head>` and validate the corrected Blog-widget contract with all 38 tests
+- [x] Place the Blog widget in Blogger’s reserved `page_body` section and enforce that contract in the theme regression test
