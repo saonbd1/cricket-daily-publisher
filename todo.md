@@ -128,8 +128,8 @@
 - [x] Create a minimal clean Blogger XML foundation without inherited theme-image attribution, unrelated assets, or unnecessary external code
 - [x] Build the clean foundation with custom Watch Now Cricket structure, event/table styling, date/ticker, SEO schema, responsive styles, and a rendered Fixture Board redirect link
 - [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
-- [ ] Re-upload the revised clean template with the Blogger default-markup Blog-widget repair, then verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
+- [ ] Re-upload the revised clean template with the Blogger default-markup, widget-settings, and `postCommentsAndAd` repair, then verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
 - [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
-- [x] Add regression coverage for the fixture-table rendering contract and Vercel cron configuration
+- [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest

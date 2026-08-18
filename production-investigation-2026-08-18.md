@@ -22,3 +22,26 @@ Unauthenticated GET returned `{"error":"Cron authentication required"}`. This co
 
 ## Root cause and local fix
 The clean theme's Blog widget had a `main` includable that directly emitted post markup, but lacked Blogger's reusable `post` includable and `<b:include data='post' name='post'/>` contract. The corrected theme now includes both. The corrected theme also uses literal bullet characters in the ticker and has a rendered Fixture Board link. Static XML/security validation and 37 Vitest tests pass.
+
+## Second clean-theme upload verification
+
+Source URLs:
+- Homepage: https://watchnowcricket.blogspot.com/
+- Fixture Board redirect: https://cricket-daily-publisher.vercel.app/api/board
+- Direct board post observed: https://watchnowcricket.blogspot.com/2026/08/daily-cricket-fixture-board_0385420378.html
+
+Observed after the second manual upload:
+- The ticker renders as `LIVE CRICKET • SCORE • STREAM`.
+- The GMT+6 date renders as `Tuesday, August 18, 2026`.
+- The clean custom shell, navigation, Hall of Fame, and Fixture Board CTA render.
+- The footer visibly includes Home, Powered by Blogger, and Report Abuse.
+- The fixture table/post body is still absent on both the homepage and direct board post.
+- Browser DOM inspection showed `<main id="main" class="main no-items section">` and no post-card/post-body nodes.
+
+Latest local repair prepared after this observation:
+- Added `b:defaultmarkup type='Blog'` with `super.main` and `postCommentsAndAd`.
+- Added Blog widget settings.
+- Changed the widget main includable to `id='main'` without `var='top'`.
+- Added a dynamic `data:blog.reportAbuseUrl` footer link.
+- XML validator passes and all 38 Vitest tests pass.
+- The revised XML still requires one more manual Blogger upload and live verification.

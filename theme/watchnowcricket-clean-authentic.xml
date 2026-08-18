@@ -52,6 +52,13 @@
       <b:includable id='main'>
         <b:include name='super.main'/>
       </b:includable>
+      <b:includable id='postCommentsAndAd' var='post'>
+        <div class='post-outer-container'>
+          <div class='post-outer'>
+            <b:include data='post' name='post'/>
+          </div>
+        </div>
+      </b:includable>
     </b:defaultmarkup>
   </b:defaultmarkups>
 <body>
@@ -72,7 +79,15 @@
     <main class='content-grid' id='main-content'>
       <b:section id='main' class='main' name='Main Content' showaddelement='false'>
         <b:widget id='Blog1' locked='true' title='Cricket Events' type='Blog' visible='true'>
-                  <b:includable id='main' var='top'>
+          <b:widget-settings>
+            <b:widget-setting name='showDateHeader'>false</b:widget-setting>
+            <b:widget-setting name='showShareButtons'>false</b:widget-setting>
+            <b:widget-setting name='showCommentLink'>false</b:widget-setting>
+            <b:widget-setting name='showAuthor'>false</b:widget-setting>
+            <b:widget-setting name='showLabels'>false</b:widget-setting>
+            <b:widget-setting name='showTimestamp'>true</b:widget-setting>
+          </b:widget-settings>
+          <b:includable id='main'>
             <b:include name='super.main'/>
           </b:includable>
           <b:includable id='post' var='post'>
