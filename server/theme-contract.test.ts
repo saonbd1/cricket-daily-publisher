@@ -7,7 +7,8 @@ const theme = readFileSync(resolve(process.cwd(), "theme/watchnowcricket-clean-a
 describe("clean Blogger theme contract", () => {
   it("renders Blogger post bodies through the reusable post includable", () => {
     expect(theme).toContain("<b:includable id='main' var='top'>");
-    expect(theme).toContain("<b:include data='post' name='post'/>");
+    expect(theme).toContain("<b:include name='super.main'/>");
+    expect(theme).toContain("<b:defaultmarkup type='Blog'>");
     expect(theme).toContain("<b:includable id='post' var='post'>");
     expect(theme).toContain("<div class='post-body'><data:post.body/></div>");
   });
@@ -16,6 +17,8 @@ describe("clean Blogger theme contract", () => {
     expect(theme).toContain("https://cricket-daily-publisher.vercel.app/api/board");
     expect(theme).toContain("LIVE CRICKET • SCORE • STREAM");
     expect(theme).toContain("cricket-live-date-value");
+    expect(theme).toContain("data:blog.reportAbuseUrl");
+    expect(theme).toContain("data:messages.reportAbuse");
   });
 
   it("contains no inherited attribution or executable third-party patterns", () => {
