@@ -22,8 +22,13 @@ describe("clean Blogger theme contract", () => {
     expect(theme).toContain("data:messages.reportAbuse");
   });
 
-  it("contains no inherited attribution or executable third-party patterns", () => {
-    for (const marker of ["rami_ba", "istockphoto", "themes.googleusercontent", "window.location", "eval(", "document.write", "fetch(", "XMLHttpRequest", "<iframe"]) {
+  it("uses only the intentional same-origin feed fallback and sanitizes post HTML", () => {
+    expect(theme).toContain("fetch(feedPath");
+    expect(theme).toContain("'/feeds/posts/default?alt=json'");
+    expect(theme).toContain("credentials:'same-origin'");
+    expect(theme).toContain("querySelectorAll('script,iframe,object,embed,form,style,link,meta')");
+    expect(theme).toContain("name.indexOf('on')===0");
+    for (const marker of ["rami_ba", "istockphoto", "themes.googleusercontent", "window.location", "eval(", "document.write", "XMLHttpRequest", "<iframe"]) {
       expect(theme.toLowerCase()).not.toContain(marker.toLowerCase());
     }
   });

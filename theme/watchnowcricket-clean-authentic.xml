@@ -112,6 +112,35 @@
   </div>
   <script type='text/javascript'>
     (function(){
+      function escapeHtml(value){return String(value||'').replace(/[&amp;&lt;&gt;&quot;']/g,function(ch){return {'&amp;':'&amp;amp;','&lt;':'&amp;lt;','&gt;':'&amp;gt;','&quot;':'&amp;quot;',"'":'&amp;#39;'}[ch];});}
+      function safeBody(raw){
+        var template=document.createElement('template');
+        template.innerHTML=raw||'';
+        template.content.querySelectorAll('script,iframe,object,embed,form,style,link,meta').forEach(function(node){node.remove();});
+        template.content.querySelectorAll('*').forEach(function(node){Array.from(node.attributes).forEach(function(attribute){var name=attribute.name.toLowerCase();var value=attribute.value||'';if(name.indexOf('on')===0||(name==='href'&amp;&amp;/^javascript:/i.test(value))){node.removeAttribute(attribute.name);}});});
+        return template.innerHTML;
+      }
+      function entryUrl(entry){var links=entry.link||[];var match=links.find(function(link){return link.rel==='alternate';});return match?match.href:'';}
+      function renderFeed(entries){
+        var main=document.getElementById('main-content');
+        if(!main||main.querySelector('.post-card')){return;}
+        var currentPath=document.location.pathname;
+        var visible=entries.filter(function(entry){return currentPath==='/'||currentPath===''||entryUrl(entry).indexOf(currentPath)!==-1;});
+        if(!visible.length){return;}
+        main.innerHTML='';
+        visible.forEach(function(entry){
+          var article=document.createElement('article');
+          article.className='post-card';
+          var url=entryUrl(entry);
+          article.innerHTML='&lt;header class=\"post-header\"&gt;&lt;h2 class=\"post-title\"&gt;&lt;a href=\"'+escapeHtml(url)+'\"&gt;'+escapeHtml(entry.title&amp;&amp;entry.title.$t)+'&lt;/a&gt;&lt;/h2&gt;&lt;div class=\"post-meta\"&gt;'+escapeHtml(entry.published&amp;&amp;entry.published.$t)+'&lt;/div&gt;&lt;/header&gt;&lt;div class=\"post-body\"&gt;'+safeBody(entry.content&amp;&amp;entry.content.$t)+'&lt;/div&gt;&lt;footer class=\"post-footer\"&gt;&lt;a href=\"'+escapeHtml(url)+'\"&gt;Open event details&lt;/a&gt;&lt;/footer&gt;';
+          main.appendChild(article);
+        });
+      }
+      function loadPublishedFixtures(){
+        var feedPath='/feeds/posts/default?alt=json'+'&amp;'+'max-results=20';
+        fetch(feedPath,{credentials:'same-origin'}).then(function(response){if(!response.ok){throw new Error('Feed request failed');}return response.json();}).then(function(payload){renderFeed((payload.feed&amp;&amp;payload.feed.entry)||[]);}).catch(function(){/* Native Blogger rendering remains the fallback. */});
+      }
+      if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',loadPublishedFixtures);}else{loadPublishedFixtures();}
       function updateCricketDate(){
         var target=document.getElementById('cricket-live-date-value');
         if(!target){return;}

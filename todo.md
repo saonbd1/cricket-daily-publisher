@@ -128,10 +128,12 @@
 - [x] Create a minimal clean Blogger XML foundation without inherited theme-image attribution, unrelated assets, or unnecessary external code
 - [x] Build the clean foundation with custom Watch Now Cricket structure, event/table styling, date/ticker, SEO schema, responsive styles, and a rendered Fixture Board redirect link
 - [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
-- [ ] Re-upload the revised clean template with the Blogger default-markup, widget-settings, and `postCommentsAndAd` repair, then verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
+- [ ] Upload the newest clean template containing the default-markup, widget-settings, `postCommentsAndAd`, reserved `page_body`, and same-origin feed fallback; verify date/ticker rendering, Fixture Board linking, footer behavior, and mobile/table readability
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
 - [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
 - [x] Move the clean theme’s Blogger `b:defaultmarkups` block inside `<head>` and validate the corrected Blog-widget contract with all 38 tests
 - [x] Place the Blog widget in Blogger’s reserved `page_body` section and enforce that contract in the theme regression test
+- [x] Document the same-origin Blogger JSON-feed fallback in the production investigation record, including its purpose and sanitization constraints
+- [x] Add regression coverage that permits only the site-local feed endpoint and sanitizes rendered post content

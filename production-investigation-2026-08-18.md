@@ -53,3 +53,17 @@ After the final manual upload, both the homepage and the direct Daily Cricket Fi
 ## Head-fix upload verification
 
 After the upload described as `uploaded head fixed`, the homepage and direct board URL still show the clean shell with the date, ticker, navigation, Hall of Fame, and footer links, but no fixture post body or table rows. The direct board URL remains https://watchnowcricket.blogspot.com/2026/08/daily-cricket-fixture-board_0385420378.html via https://cricket-daily-publisher.vercel.app/api/board. The rendered content still has no post title or post body beneath the shell, so the `b:defaultmarkups` placement fix alone did not make Blogger supply post data.
+
+## Page-body upload verification
+
+At 2026-08-18 13:25 UTC, after the `page_body` upload, the homepage and direct Fixture Board post still rendered the clean shell, GMT+6 date, bullet ticker, navigation, Hall of Fame, Powered by Blogger, and Report Abuse. Neither route rendered the generated post body or fixture table. The `page_body` placement repair alone did not restore Blogger post data delivery; further Blog-widget contract diagnosis is required.
+
+## Public feed verification
+
+The public feed https://watchnowcricket.blogspot.com/feeds/posts/default?alt=json&max-results=5 contains the Daily Cricket Fixture Board and match posts with published HTML bodies. The board entry includes a `data-cricket-board="daily"` section and a complete table with dates, GMT+6 times, tournament, match, and direct match-post links. This confirms the publisher created public posts correctly; the remaining absence on homepage/direct post pages is entirely in the active Blogger theme Blog-widget rendering path.
+
+## Same-origin Blogger feed fallback
+
+The clean theme now includes a deliberate fallback for the case where Blogger’s native Blog widget compiles with `no-items` even though the public feed contains published posts. On DOM ready, it requests only the current blog’s relative endpoint `/feeds/posts/default?alt=json&max-results=20` with `credentials: 'same-origin'`. On the homepage it renders the returned published entries; on a direct post path it filters to the matching entry URL. Before inserting post content, it removes scripts, frames, objects, embeds, forms, style/link/meta nodes, inline event-handler attributes, and `javascript:` hrefs. Titles, URLs, and dates are HTML-escaped. The native Blogger widget remains the fallback if the feed request fails.
+
+This code is intentionally limited to the site-local feed and contains no third-party fetch, redirect, tracker, or external executable asset. It requires one final manual Blogger upload and live verification on both the homepage and the Daily Cricket Fixture Board route.
