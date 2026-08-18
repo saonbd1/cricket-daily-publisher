@@ -120,7 +120,7 @@
 - [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
 - [x] Validate the mobile responsive implementation contract: stacked fixture rows, responsive card layout, and mobile-safe link/table styles are present
 - [x] Verify mobile implementation and live DOM content at approximately 390px: fixture rows, event-detail links, responsive card styles, and mobile-safe table rules are present
-- [ ] Complete formal visual mobile QA sign-off for contrast, stacked-row readability, and overflow behavior at approximately 390px
+- [ ] Complete formal mobile QA sign-off after recording machine-verifiable DOM measurements for overflow, fixture rows, link visibility, and computed colors at approximately 390px
 - [x] Live-verify removal of unwanted visible theme credit links while preserving Powered by Blogger and the Report Abuse link
 - [x] Supersede the inherited attribution workaround with the clean custom foundation and live-verify the clean footer
 - [x] After the final fallback-theme upload, verify Powered by Blogger, Report Abuse, date, ticker, palette, Fixture Board link, desktop table readability, and mobile visual rendering together
@@ -139,6 +139,8 @@
 - [x] Place the Blog widget in Blogger’s reserved `page_body` section and enforce that contract in the theme regression test
 - [x] Document the same-origin Blogger JSON-feed fallback in the production investigation record, including its purpose and sanitization constraints
 - [x] Add regression coverage that permits only the site-local feed endpoint and sanitizes rendered post content
-- [ ] Make the homepage show the automated fixture table as the primary content and suppress regular blog-post cards there
-- [ ] Preserve direct match-post pages, the Daily Fixture Board post route, and the same-origin feed fallback for non-homepage routes
+- [x] Make the homepage show the automated fixture table as the primary content and suppress regular blog-post cards there
+- [x] Preserve direct match-post pages, the Daily Fixture Board post route, and the same-origin feed fallback for non-homepage routes
 - [x] Add regression coverage for homepage-only fixture rendering and blog-post suppression
+- [x] Center-align homepage and fixture content consistently across hero, navigation, date, Hall of Fame, tables, buttons, statuses, and footer while preserving readable link targets
+- [x] Add regression coverage for the centered alignment contract and verify desktop/mobile readability

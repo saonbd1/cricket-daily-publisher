@@ -22,6 +22,17 @@ describe("clean Blogger theme contract", () => {
     expect(theme).toContain("data:messages.reportAbuse");
   });
 
+  it("centers homepage content and keeps fixture tables readable", () => {
+    expect(theme).toContain(".site-shell{width:min(var(--max),calc(100% - 32px));margin:0 auto;text-align:center}");
+    expect(theme).toContain(".site-nav{position:relative;z-index:2;display:flex;justify-content:center");
+    expect(theme).toContain(".live-date{display:flex;align-items:center;justify-content:center");
+    expect(theme).toContain(".post-body table{margin-left:auto;margin-right:auto}");
+    expect(theme).toContain(".post-body th{padding:12px 14px;background:#142d50;color:#aebfea;font-size:10px;letter-spacing:.08em;text-align:center");
+    expect(theme).toContain(".post-body td{padding:13px 14px;border-top:1px solid rgba(145,167,255,.13);color:#dbe5f7;font-size:12px;text-align:center}");
+    expect(theme).toContain(".fixture-board-link{display:flex;width:max-content;align-items:center;justify-content:center");
+    expect(theme).toContain(".site-footer{display:flex;justify-content:center");
+  });
+
   it("uses only the intentional same-origin feed fallback and sanitizes post HTML", () => {
     expect(theme).toContain("fetch(feedPath");
     expect(theme).toContain("'/feeds/posts/default?alt=json'");
