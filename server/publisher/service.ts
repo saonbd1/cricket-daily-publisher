@@ -4,6 +4,7 @@ import { fetchTheSportsDbFixtures } from "./thesportsdb.js";
 import { reconcileFixtures } from "./reconciliation.js";
 import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db.js";
 import type { NormalizedFixture } from "./normalization.js";
+import { persistedVerificationFixture } from "./verification-preservation.js";
 
 const LOOKBACK_MS = 12 * 60 * 60 * 1000;
 const LOOKAHEAD_MS = 8 * 24 * 60 * 60 * 1000;
@@ -75,6 +76,9 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
   let bloggerStatusCode: number | undefined;
   const postUrls: string[] = [];
   const boardRows: Array<{ fixture: NormalizedFixture; postUrl: string | null }> = [];
+  let effectiveVerified = 0;
+  let effectiveCandidates = 0;
+  let effectiveConflicts = 0;
   try {
     const [source, settings] = await Promise.all([fetchFixtures(), getStoredBloggerSettings()]);
     apiStatusCode = source.statusCode;
@@ -87,25 +91,29 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
     fixturesFetched = reconciled.fixtures.length;
     for (const normalized of reconciled.fixtures) {
       const saved = await upsertNormalizedFixture(normalized);
-      if (!isPublishable(normalized)) continue;
-      const title = postTitle(normalized);
-      const content = postContent(normalized);
-      const labels = ["Cricket", normalized.tournamentName, normalized.localDateGmt6];
-      const reconciledPost = saved.bloggerPostId ? null : await findBloggerPostByMarker(fixtureMarker(normalized), settings.googleRefreshToken!);
+      const effective = persistedVerificationFixture(normalized, saved);
+      if (effective.verificationStatus === "verified") effectiveVerified += 1;
+      else if (effective.verificationStatus === "conflict") effectiveConflicts += 1;
+      else effectiveCandidates += 1;
+      if (!isPublishable(effective)) continue;
+      const title = postTitle(effective);
+      const content = postContent(effective);
+      const labels = ["Cricket", effective.tournamentName, effective.localDateGmt6];
+      const reconciledPost = saved.bloggerPostId ? null : await findBloggerPostByMarker(fixtureMarker(effective), settings.googleRefreshToken!);
       if (saved.bloggerPostId || reconciledPost) {
         const postId = saved.bloggerPostId ?? reconciledPost!.id;
         const result = await updateBloggerPost(postId, title, content, labels, settings.googleRefreshToken!);
         bloggerStatusCode = result.statusCode;
         if (reconciledPost && !saved.bloggerPostId) await saveBloggerPublication(saved.id, result.post.id, result.post.url ?? reconciledPost.url ?? null);
         if (result.post.url) postUrls.push(result.post.url);
-        boardRows.push({ fixture: normalized, postUrl: result.post.url ?? reconciledPost?.url ?? null });
+        boardRows.push({ fixture: effective, postUrl: result.post.url ?? reconciledPost?.url ?? null });
         postsUpdated += 1;
       } else {
         const result = await createBloggerPost(title, content, labels, settings.googleRefreshToken!);
         bloggerStatusCode = result.statusCode;
         await saveBloggerPublication(saved.id, result.post.id, result.post.url ?? null);
         if (result.post.url) postUrls.push(result.post.url);
-        boardRows.push({ fixture: normalized, postUrl: result.post.url ?? null });
+        boardRows.push({ fixture: effective, postUrl: result.post.url ?? null });
         postsCreated += 1;
       }
     }
@@ -129,10 +137,10 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
       }
     }
     const coverageMessage = coverage.map((row) => `${row.date}:primary=${row.primary},secondary=${row.secondary}`).join(";");
-    const verificationMessage = `verification: verified=${reconciled.verified}, candidates=${reconciled.candidates}, conflicts=${reconciled.conflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}`;
-    const finalStatus = reconciled.candidates > 0 || reconciled.conflicts > 0 ? "partial" : "success";
+    const verificationMessage = `verification: verified=${effectiveVerified}, candidates=${effectiveCandidates}, conflicts=${effectiveConflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}`;
+    const finalStatus = effectiveCandidates > 0 || effectiveConflicts > 0 ? "partial" : "success";
     await finishRun(runId, { status: finalStatus, fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: verificationMessage });
-    return { runId, status: finalStatus as "success" | "partial", fixturesFetched, postsCreated, postsUpdated, verification: reconciled };
+    return { runId, status: finalStatus as "success" | "partial", fixturesFetched, postsCreated, postsUpdated, verification: { ...reconciled, verified: effectiveVerified, candidates: effectiveCandidates, conflicts: effectiveConflicts } };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await finishRun(runId, { status: fixturesFetched > 0 ? "partial" : "failed", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: message });

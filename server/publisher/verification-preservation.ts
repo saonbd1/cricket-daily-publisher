@@ -5,6 +5,26 @@ export type ExistingVerification = {
   sourceEvidence?: string | null;
 };
 
+export function persistedVerificationFixture(
+  fixture: NormalizedFixture,
+  saved: ExistingVerification,
+): NormalizedFixture {
+  let sourceEvidence = fixture.sourceEvidence;
+  if (saved.sourceEvidence) {
+    try {
+      const parsed = JSON.parse(saved.sourceEvidence);
+      if (Array.isArray(parsed)) sourceEvidence = parsed.filter((value): value is string => typeof value === "string");
+    } catch {
+      sourceEvidence = fixture.sourceEvidence;
+    }
+  }
+  return {
+    ...fixture,
+    verificationStatus: saved.verificationStatus === "verified" ? "verified" : fixture.verificationStatus,
+    sourceEvidence,
+  };
+}
+
 export function preserveExistingVerification(
   fixture: NormalizedFixture,
   existing?: ExistingVerification,
