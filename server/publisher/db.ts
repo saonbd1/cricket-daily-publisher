@@ -1,6 +1,7 @@
 import type { Fixture, PublisherRun, PublisherSettings, Tournament } from "../../drizzle/schema.js";
 import { supabaseRest } from "../supabase-rest.js";
 import type { NormalizedFixture } from "./normalization.js";
+import { preserveExistingVerification } from "./verification-preservation.js";
 
 export const DEFAULT_BLOG_URL = "https://watchnowcricket.blogspot.com";
 
@@ -85,6 +86,10 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
   const tournament = tournamentRows[0];
   if (!tournament) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
 
+  const existingRows = await supabaseRest<Array<Fixture>>("fixtures", {
+    query: { select: "id,verificationStatus,sourceEvidence", externalId: `eq.${fixture.externalId}`, limit: 1 },
+  });
+  const preservedVerification = preserveExistingVerification(fixture, existingRows[0]);
   const values = {
     externalId: fixture.externalId,
     tournamentId: tournament.id,
@@ -97,8 +102,8 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
-    verificationStatus: fixture.verificationStatus,
-    sourceEvidence: JSON.stringify(fixture.sourceEvidence),
+    verificationStatus: preservedVerification.verificationStatus,
+    sourceEvidence: preservedVerification.sourceEvidence,
     lastSyncedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

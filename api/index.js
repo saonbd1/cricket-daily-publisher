@@ -835,6 +835,30 @@ var systemRouter = router({
   })
 });
 
+// server/publisher/verification-preservation.ts
+function preserveExistingVerification(fixture, existing) {
+  if (existing?.verificationStatus !== "verified" || fixture.verificationStatus === "verified") {
+    return {
+      verificationStatus: fixture.verificationStatus,
+      sourceEvidence: JSON.stringify(fixture.sourceEvidence)
+    };
+  }
+  let previous = [];
+  if (existing.sourceEvidence) {
+    try {
+      const parsed = JSON.parse(existing.sourceEvidence);
+      if (Array.isArray(parsed)) previous = parsed.filter((value) => typeof value === "string");
+    } catch {
+      previous = [];
+    }
+  }
+  const merged = Array.from(/* @__PURE__ */ new Set([...previous, ...fixture.sourceEvidence]));
+  return {
+    verificationStatus: "verified",
+    sourceEvidence: JSON.stringify(merged)
+  };
+}
+
 // server/publisher/db.ts
 var DEFAULT_BLOG_URL = "https://watchnowcricket.blogspot.com";
 async function getSettingsRows(query = {}) {
@@ -905,6 +929,10 @@ async function upsertNormalizedFixture(fixture) {
   });
   const tournament = tournamentRows[0];
   if (!tournament) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
+  const existingRows = await supabaseRest("fixtures", {
+    query: { select: "id,verificationStatus,sourceEvidence", externalId: `eq.${fixture.externalId}`, limit: 1 }
+  });
+  const preservedVerification = preserveExistingVerification(fixture, existingRows[0]);
   const values = {
     externalId: fixture.externalId,
     tournamentId: tournament.id,
@@ -917,8 +945,8 @@ async function upsertNormalizedFixture(fixture) {
     status: fixture.status,
     scoreSummary: fixture.scoreSummary,
     matchUrl: fixture.matchUrl,
-    verificationStatus: fixture.verificationStatus,
-    sourceEvidence: JSON.stringify(fixture.sourceEvidence),
+    verificationStatus: preservedVerification.verificationStatus,
+    sourceEvidence: preservedVerification.sourceEvidence,
     lastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
