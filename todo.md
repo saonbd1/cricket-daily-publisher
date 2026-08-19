@@ -120,7 +120,7 @@
 - [x] Refresh the Blogger theme palette to a cooler, more premium sports color system without changing the established structure or fixture automation
 - [x] Validate the mobile responsive implementation contract: stacked fixture rows, responsive card layout, and mobile-safe link/table styles are present
 - [x] Verify mobile implementation and live DOM content at approximately 390px: fixture rows, event-detail links, responsive card styles, and mobile-safe table rules are present
-- [ ] Complete formal mobile QA sign-off after recording machine-verifiable DOM measurements for overflow, fixture rows, link visibility, and computed colors at approximately 390px
+- [x] Complete formal mobile QA sign-off after recording machine-verifiable DOM measurements for overflow, fixture rows, link visibility, and computed colors at approximately 390px
 - [x] Live-verify removal of unwanted visible theme credit links while preserving Powered by Blogger and the Report Abuse link
 - [x] Supersede the inherited attribution workaround with the clean custom foundation and live-verify the clean footer
 - [x] After the final fallback-theme upload, verify Powered by Blogger, Report Abuse, date, ticker, palette, Fixture Board link, desktop table readability, and mobile visual rendering together
@@ -132,7 +132,7 @@
 - [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
 - [x] Upload the newest clean template containing the default-markup, widget-settings, `postCommentsAndAd`, reserved `page_body`, and same-origin feed fallback; verify date/ticker rendering, Fixture Board linking, footer behavior, and desktop table readability
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
-- [ ] Verify why the configured Vercel cron has not produced a scheduled publisher run and preserve the working manual path
+- [ ] Diagnose the missing Vercel cron execution with definitive Vercel-side evidence and preserve the working manual publisher path
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
 - [x] Move the clean theme’s Blogger `b:defaultmarkups` block inside `<head>` and validate the corrected Blog-widget contract with all 38 tests
@@ -152,3 +152,4 @@
 - [x] Add verified, candidate, and conflict reconciliation states with source evidence and safe identity matching
 - [x] Keep Candidate and Conflict events out of Blogger while exposing review diagnostics in the dashboard/run logs
 - [x] Add schema migration, Vitest coverage, and production-safe validation for verified-only publishing
+- [ ] Manually trigger and verify the production Vercel cron endpoint with authorization, run-log evidence, and fixture/board checks
