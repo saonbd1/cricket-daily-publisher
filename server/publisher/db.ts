@@ -87,7 +87,7 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
   if (!tournament) throw new Error(`Unable to resolve tournament ${fixture.tournamentName}`);
 
   const existingRows = await supabaseRest<Array<Fixture>>("fixtures", {
-    query: { select: "id,verificationStatus,sourceEvidence", externalId: `eq.${fixture.externalId}`, limit: 1 },
+    query: { select: "*", externalId: `eq.${fixture.externalId}`, limit: 1 },
   });
   const preservedVerification = preserveExistingVerification(fixture, existingRows[0]);
   const values = {
