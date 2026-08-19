@@ -132,7 +132,7 @@
 - [x] Expand the clean template with the intended Watch Now Cricket homepage sections, navigation behavior, Hall of Fame treatment, and fixture-board access
 - [x] Upload the newest clean template containing the default-markup, widget-settings, `postCommentsAndAd`, reserved `page_body`, and same-origin feed fallback; verify date/ticker rendering, Fixture Board linking, footer behavior, and desktop table readability
 - [x] Diagnose why the live Blogger homepage or Fixture Board was not rendering the automated fixture table: the Blog widget lacked Blogger’s reusable `post` includable
-- [ ] Diagnose the missing Vercel cron execution with definitive Vercel-side evidence and preserve the working manual publisher path
+- [x] Diagnose the missing Vercel cron execution with definitive Vercel-side evidence and preserve the working manual publisher path
 - [x] Add regression coverage for the fixture-table rendering contract, Blog widget settings, Report Abuse footer contract, and Vercel cron configuration
 - [x] Configure `CRON_SECRET` for the Vercel cron environment and validate its bearer authorization contract with Vitest
 - [x] Move the clean theme’s Blogger `b:defaultmarkups` block inside `<head>` and validate the corrected Blog-widget contract with all 38 tests
@@ -152,4 +152,6 @@
 - [x] Add verified, candidate, and conflict reconciliation states with source evidence and safe identity matching
 - [x] Keep Candidate and Conflict events out of Blogger while exposing review diagnostics in the dashboard/run logs
 - [x] Add schema migration, Vitest coverage, and production-safe validation for verified-only publishing
-- [ ] Manually trigger and verify the production Vercel cron endpoint with authorization, run-log evidence, and fixture/board checks
+- [x] Manually trigger and verify the production Vercel cron endpoint with authorization, run-log evidence, and fixture/board checks
+- [x] Verify the live Blogger homepage and Fixture Board after the successful authenticated cron run
+- [x] Record the manual cron trigger time, persisted run result, and observed live board state in an audit note

@@ -9,6 +9,7 @@ describe("production cron secret", () => {
       headers: { Authorization: `Bearer ${secret}` },
     });
 
-    expect(response.status, `production cron returned ${response.status}`).not.toBe(401);
+    expect(response.status, `production cron returned ${response.status}`).toBeGreaterThanOrEqual(200);
+    expect(response.status, `production cron returned ${response.status}`).toBeLessThan(300);
   }, 120_000);
 });
