@@ -155,3 +155,6 @@
 - [x] Manually trigger and verify the production Vercel cron endpoint with authorization, run-log evidence, and fixture/board checks
 - [x] Verify the live Blogger homepage and Fixture Board after the successful authenticated cron run
 - [x] Record the manual cron trigger time, persisted run result, and observed live board state in an audit note
+- [x] Load and classify the 23 candidate fixtures from the production review queue
+- [x] Corroborate candidate fixtures with permitted structured or official sources and record evidence
+- [x] Promote only corroborated candidates to verified status, then validate the resulting Blogger publication
