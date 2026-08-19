@@ -159,4 +159,7 @@
 - [x] Corroborate candidate fixtures with permitted structured or official sources and record evidence
 - [x] Promote only corroborated candidates to verified status, then validate the resulting Blogger publication
 - [ ] Run the authenticated production publisher for the nine newly verified fixtures and verify Blogger, database, and live table results
-- [ ] Preserve manually corroborated verified status and source evidence during subsequent CricketData/TheSportsDB upserts, add regression coverage, redeploy, and rerun the nine-fixture publication
+- [x] Preserve manually corroborated verified status and source evidence during subsequent CricketData/TheSportsDB upserts, add regression coverage, and redeploy the fix
+- [ ] Retry publication of the one verified fixture still missing a Blogger post after the Blogger API quota resets, then verify the live table
+- [x] Research SEO keyword opportunities for the cricket publisher project, using a confirmed target country and data-source scope, then deliver prioritized article topics
+- [x] Write the worldwide flagship case study in Simplified Technical English with evidence-based desktop and mobile screenshots
