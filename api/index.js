@@ -1335,7 +1335,7 @@ function fixtureMarker(fixture) {
 }
 function boardContent(rows) {
   const tableRows = rows.map((row) => `<tr><td>${row.fixture.localDateGmt6}</td><td>${row.fixture.localTimeGmt6}</td><td>${row.fixture.tournamentName}</td><td>${row.fixture.teamOne} vs ${row.fixture.teamTwo}</td><td>${row.postUrl ? `<a href="${row.postUrl}">Watch match post</a>` : "Pending"}</td></tr>`).join("");
-  return `<section ${BOARD_MARKER}><h1>Daily Cricket Fixture Board</h1><p>Bangladesh time (GMT+6). Tournament-grouped fixtures and their individual match posts.</p><table><thead><tr><th>Date</th><th>Time</th><th>Tournament</th><th>Match</th><th>Details</th></tr></thead><tbody>${tableRows}</tbody></table></section>`;
+  return `<section ${BOARD_MARKER}><h3>Daily Cricket Fixture Board</h3><p>Bangladesh time (GMT+6). Tournament-grouped fixtures and their individual match posts.</p><table><thead><tr><th>Date</th><th>Time</th><th>Tournament</th><th>Match</th><th>Details</th></tr></thead><tbody>${tableRows}</tbody></table></section>`;
 }
 async function runPublisher(trigger) {
   const runId = await createRun(trigger);
