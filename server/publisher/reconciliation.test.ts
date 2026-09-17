@@ -36,6 +36,13 @@ describe("reconcileFixtures", () => {
     expect(result.fixtures[0].verificationStatus).toBe("candidate");
   });
 
+  it("publishes primary events when the secondary source has no results", () => {
+    const result = reconcileFixtures([fixture()], []);
+    expect(result.verified).toBe(1);
+    expect(result.candidates).toBe(0);
+    expect(result.fixtures[0].verificationStatus).toBe("verified");
+  });
+
   it("marks same-team time disagreements as conflicts", () => {
     const result = reconcileFixtures([fixture()], [fixture({ externalId: "secondary-1", startTimeUtc: new Date("2026-08-18T12:30:00.000Z"), sourceEvidence: ["thesportsdb"] })]);
     expect(result.conflicts).toBe(1);
