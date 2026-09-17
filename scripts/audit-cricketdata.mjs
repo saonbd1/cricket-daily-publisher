@@ -1,4 +1,4 @@
-const response = await fetch(`https://api.cricapi.com/v1/matches?apikey=${encodeURIComponent(process.env.CRICKETDATA_API_KEY)}&offset=0`, { headers: { accept: "application/json" } });
+const response = await fetch(`https://api.cricapi.com/v1/matches?apikey=ab328ab6-569b-4fd9-b5bf-17980a18d1c5&offset=0
 const body = await response.json();
 if (!response.ok || body.status === "failure") throw new Error(`CricketData request failed: ${response.status}`);
 const fixtures = (body.data ?? []).map((item) => ({
