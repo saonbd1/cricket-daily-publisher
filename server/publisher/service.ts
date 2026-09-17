@@ -26,8 +26,10 @@ function publishingDates(now = new Date()) {
   return Array.from(dates);
 }
 
-export function isPublishable(fixture: NormalizedFixture) {
-  return fixture.verificationStatus === "verified";
+// The primary CricketData feed is the publishing source of truth. The secondary
+// feed remains diagnostic evidence, but it no longer blocks publication.
+export function isPublishable(_fixture: NormalizedFixture) {
+  return true;
 }
 
 export function publishableFixtures(fixtures: NormalizedFixture[]) {

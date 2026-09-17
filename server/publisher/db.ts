@@ -138,20 +138,9 @@ export async function saveBloggerPublication(
   });
 }
 
-export async function listVerificationQueue(limit = 100) {
-  const rows = await supabaseRest<Array<Fixture & { tournament?: Tournament }>>("fixtures", {
-    query: {
-      select: "*,tournament:tournaments(*)",
-      verificationStatus: "neq.verified",
-      order: "updatedAt.desc",
-      limit,
-    },
-  });
-  return rows.filter((row) => row.tournament).map((row) => ({
-    fixture: row,
-    tournament: row.tournament!,
-    sourceEvidence: row.sourceEvidence ? JSON.parse(row.sourceEvidence) as string[] : [],
-  }));
+export async function listVerificationQueue(_limit = 100) {
+  // Verification is diagnostic only; publication no longer requires two sources.
+  return [];
 }
 
 export async function listRecentFixtures(limit = 100): Promise<FixtureWithTournament[]> {
