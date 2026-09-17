@@ -116,8 +116,7 @@
         var currentPath=document.location.pathname;
         var isHome=currentPath==='/'||currentPath==='';
         var visible=entries.filter(function(entry){
-          var title=String(entry.title&amp;&amp;entry.title.$t||'');
-          if(isHome){return /daily cricket fixture board/i.test(title);}
+          if(isHome){return true;}
           return entryUrl(entry).indexOf(currentPath)!==-1;
         });
         if(!visible.length){return;}

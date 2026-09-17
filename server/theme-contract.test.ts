@@ -38,7 +38,7 @@ describe("clean Blogger theme contract", () => {
     expect(theme).toContain("'/feeds/posts/default?alt=json'");
     expect(theme).toContain("credentials:'same-origin'");
     expect(theme).toContain("var isHome=currentPath==='/'||currentPath==='';");
-    expect(theme).toContain("/daily cricket fixture board/i.test(title)");
+    expect(theme).toContain("if(isHome){return true;}");
     expect(theme).toContain("return entryUrl(entry).indexOf(currentPath)!==-1;");
     expect(theme).toContain("querySelectorAll('script,iframe,object,embed,form,style,link,meta')");
     expect(theme).toContain("name.indexOf('on')===0");
