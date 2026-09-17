@@ -32,6 +32,7 @@ function merge(primary: NormalizedFixture, secondary: NormalizedFixture, status:
 export function reconcileFixtures(primary: NormalizedFixture[], secondary: NormalizedFixture[]): ReconciliationResult {
   const output: NormalizedFixture[] = [];
   const usedSecondary = new Set<number>();
+  const secondaryUnavailable = primary.length > 0 && secondary.length === 0;
   for (const fixture of primary) {
     const matchIndex = secondary.findIndex((candidate, index) => !usedSecondary.has(index) && pairKey(candidate) === pairKey(fixture) && closeInTime(candidate, fixture));
     if (matchIndex >= 0) {
@@ -40,7 +41,7 @@ export function reconcileFixtures(primary: NormalizedFixture[], secondary: Norma
       continue;
     }
     const conflicting = secondary.some((candidate, index) => !usedSecondary.has(index) && pairKey(candidate) === pairKey(fixture));
-    output.push({ ...fixture, verificationStatus: conflicting ? "conflict" : "candidate" });
+    output.push({ ...fixture, verificationStatus: conflicting ? "conflict" : secondaryUnavailable ? "verified" : "candidate" });
   }
   secondary.forEach((fixture, index) => {
     if (!usedSecondary.has(index)) output.push({ ...fixture, verificationStatus: "candidate" });
