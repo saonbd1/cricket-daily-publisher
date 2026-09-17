@@ -17,22 +17,22 @@ const base = {
   sourceEvidence: ["cricketdata", "thesportsdb"],
 };
 
-describe("verified-only publish gate", () => {
+describe("primary-source publish gate", () => {
   it("allows verified fixtures", () => {
     expect(isPublishable({ ...base, verificationStatus: "verified" })).toBe(true);
   });
 
-  it("blocks candidate and conflict fixtures", () => {
-    expect(isPublishable({ ...base, verificationStatus: "candidate" })).toBe(false);
-    expect(isPublishable({ ...base, verificationStatus: "conflict" })).toBe(false);
+  it("allows candidate and conflict fixtures because verification is diagnostic", () => {
+    expect(isPublishable({ ...base, verificationStatus: "candidate" })).toBe(true);
+    expect(isPublishable({ ...base, verificationStatus: "conflict" })).toBe(true);
   });
 
-  it("keeps non-verified fixtures out of the publishable board set", () => {
+  it("includes every fixture in the publishable board set", () => {
     const result = publishableFixtures([
       { ...base, externalId: "verified", verificationStatus: "verified" },
       { ...base, externalId: "candidate", verificationStatus: "candidate" },
       { ...base, externalId: "conflict", verificationStatus: "conflict" },
     ]);
-    expect(result.map((item) => item.externalId)).toEqual(["verified"]);
+    expect(result.map((item) => item.externalId)).toEqual(["verified", "candidate", "conflict"]);
   });
 });
