@@ -44,6 +44,8 @@ export const fixtures = pgTable("fixtures", {
   matchUrl: text("matchUrl"),
   verificationStatus: varchar("verificationStatus", { length: 16 }).default("verified").notNull(),
   sourceEvidence: text("sourceEvidence"),
+  previewText: text("previewText"),
+  previewGeneratedAt: timestamp("previewGeneratedAt", { withTimezone: true }),
   bloggerPostId: varchar("bloggerPostId", { length: 128 }),
   bloggerPostUrl: text("bloggerPostUrl"),
   firstPublishedAt: timestamp("firstPublishedAt", { withTimezone: true }),

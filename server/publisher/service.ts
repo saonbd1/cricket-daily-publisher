@@ -2,9 +2,10 @@ import { createBloggerPost, findBloggerPostByMarker, getStoredBloggerSettings, u
 import { fetchFixtures } from "./cricketdata.js";
 import { fetchTheSportsDbFixtures } from "./thesportsdb.js";
 import { reconcileFixtures } from "./reconciliation.js";
-import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, upsertNormalizedFixture } from "./db.js";
+import { createRun, finishRun, saveBloggerPublication, saveBoardPostUrl, savePreview, upsertNormalizedFixture } from "./db.js";
 import type { NormalizedFixture } from "./normalization.js";
 import { persistedVerificationFixture } from "./verification-preservation.js";
+import { generateMatchPreview } from "./preview.js";
 
 const LOOKBACK_MS = 12 * 60 * 60 * 1000;
 const LOOKAHEAD_MS = 8 * 24 * 60 * 60 * 1000;
@@ -44,7 +45,15 @@ function postMarker(fixture: NormalizedFixture) {
   return `data-cricket-fixture="${fixture.externalId}"`;
 }
 
-export function postContent(fixture: NormalizedFixture) {
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function postContent(fixture: NormalizedFixture, previewText?: string | null) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SportsEvent",
@@ -56,8 +65,9 @@ export function postContent(fixture: NormalizedFixture) {
     sport: "Cricket",
   };
   const score = fixture.scoreSummary ? `<p><strong>Match status:</strong> ${fixture.scoreSummary}</p>` : `<p><strong>Match status:</strong> ${fixture.status}</p>`;
+  const preview = previewText ? `<h2>Match Preview</h2><p>${escapeHtml(previewText)}</p>` : "";
   const source = fixture.matchUrl ? `<p><a href="${fixture.matchUrl}" rel="nofollow noopener">View match details</a></p>` : "";
-  return `<article class="cricket-match-post" ${postMarker(fixture)}><script type="application/ld+json">${JSON.stringify(structuredData)}</script><h1>${fixture.teamOne} vs ${fixture.teamTwo}</h1><p><strong>Tournament:</strong> ${fixture.tournamentName}</p><p><strong>Start time:</strong> ${fixture.localDateGmt6} at ${fixture.localTimeGmt6} GMT+6</p><p><strong>Venue:</strong> ${fixture.venue}</p>${score}${source}<p>Follow Watch Now Cricket for the latest fixture updates and match status.</p></article>`;
+  return `<article class="cricket-match-post" ${postMarker(fixture)}><script type="application/ld+json">${JSON.stringify(structuredData)}</script><h1>${fixture.teamOne} vs ${fixture.teamTwo}</h1><p><strong>Tournament:</strong> ${fixture.tournamentName}</p><p><strong>Start time:</strong> ${fixture.localDateGmt6} at ${fixture.localTimeGmt6} GMT+6</p><p><strong>Venue:</strong> ${fixture.venue}</p>${score}${preview}${source}<p>Follow Watch Now Cricket for the latest fixture updates and match status.</p></article>`;
 }
 
 export function fixtureMarker(fixture: NormalizedFixture) {
@@ -98,8 +108,16 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
       else if (effective.verificationStatus === "conflict") effectiveConflicts += 1;
       else effectiveCandidates += 1;
       if (!isPublishable(effective)) continue;
+      let previewText = saved.previewText ?? null;
+      if (!previewText) {
+        const generated = await generateMatchPreview(effective);
+        if (generated) {
+          previewText = generated;
+          await savePreview(saved.id, generated);
+        }
+      }
       const title = postTitle(effective);
-      const content = postContent(effective);
+      const content = postContent(effective, previewText);
       const labels = ["Cricket", effective.tournamentName, effective.localDateGmt6];
       const reconciledPost = saved.bloggerPostId ? null : await findBloggerPostByMarker(fixtureMarker(effective), settings.googleRefreshToken!);
       if (saved.bloggerPostId || reconciledPost) {

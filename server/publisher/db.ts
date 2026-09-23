@@ -118,6 +118,19 @@ export async function upsertNormalizedFixture(fixture: NormalizedFixture) {
   return saved;
 }
 
+export async function savePreview(fixtureId: number, previewText: string) {
+  await supabaseRest<Fixture[]>("fixtures", {
+    method: "PATCH",
+    query: { id: `eq.${fixtureId}` },
+    body: {
+      previewText,
+      previewGeneratedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    prefer: "return=representation",
+  });
+}
+
 export async function saveBloggerPublication(
   fixtureId: number,
   postId: string,

@@ -16,6 +16,20 @@ This service collects CricketData.org fixtures, normalizes them to Bangladesh St
 | `BLOGGER_BLOG` | Optional numeric Blogger blog ID | Leave blank initially; the authorized callback discovers it from the configured Blogspot account | Server-only |
 | `JWT_SECRET` | Session signing secret used by the application shell | Project secret management | Highly sensitive; server-only |
 | `CRON_SECRET` | Bearer secret used by the Vercel Cron publisher endpoint | Generate a random server secret and add it to Vercel | Highly sensitive; server-only |
+| `BUILT_IN_FORGE_API_URL` | Optional. Base URL of an OpenAI-compatible chat-completions endpoint, used only to generate the short match preview paragraph | Your LLM provider (e.g. `https://api.openai.com`) | Server-only |
+| `BUILT_IN_FORGE_API_KEY` | Optional. API key for the above endpoint | Your LLM provider | Highly sensitive; server-only |
+| `MATCH_PREVIEW_MODEL` | Optional. Model name to request from the endpoint above (e.g. `gpt-4o-mini`); required by most providers when `BUILT_IN_FORGE_API_URL` is set | Your LLM provider's model list | Server-only |
+
+Match previews are additive: if `BUILT_IN_FORGE_API_KEY` is left unset, the publisher skips preview generation and posts exactly as it does today — nothing else changes.
+
+Before match previews can be stored, add two nullable columns to the `fixtures` table via the Supabase SQL editor (the same way the `boardPostUrl` migration was applied):
+
+```sql
+ALTER TABLE "fixtures" ADD COLUMN IF NOT EXISTS "previewText" text;
+ALTER TABLE "fixtures" ADD COLUMN IF NOT EXISTS "previewGeneratedAt" timestamptz;
+```
+
+This SQL also lives in `drizzle/0007_add_match_preview.sql` for reference.
 
 Do not commit `.env` files, service-role keys, OAuth client secrets, or API keys. The application stores and reads application data through Supabase REST using `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; it does not require a PostgreSQL connection string or database password. Add the required values in Vercel Project Settings → Environment Variables for Production and Preview as appropriate, then redeploy.
 

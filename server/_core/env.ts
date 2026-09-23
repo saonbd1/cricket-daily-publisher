@@ -16,4 +16,5 @@ export const ENV = {
   supabaseDbRegion: process.env.SUPABASE_DB_REGION ?? "ap-northeast-2",
   bloggerBlogId: process.env.BLOGGER_BLOG_ID ?? "",
   bloggerRedirectUri: process.env.BLOGGER_REDIRECT_URI ?? "",
+  matchPreviewModel: process.env.MATCH_PREVIEW_MODEL ?? "",
 };
