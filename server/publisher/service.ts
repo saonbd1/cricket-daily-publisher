@@ -45,6 +45,19 @@ function postMarker(fixture: NormalizedFixture) {
   return `data-cricket-fixture="${fixture.externalId}"`;
 }
 
+// Blogger's search-result snippet and the theme's Open Graph/description
+// tags both read this field, so give every post its own — otherwise Google
+// either shows nothing or falls back to a generic, site-wide description
+// repeated across every match page.
+const META_DESCRIPTION_LIMIT = 155;
+
+function postSearchDescription(fixture: NormalizedFixture, previewText?: string | null) {
+  const base = previewText?.trim()
+    || `${fixture.teamOne} vs ${fixture.teamTwo} — ${fixture.tournamentName} at ${fixture.venue} on ${fixture.localDateGmt6}, ${fixture.localTimeGmt6} GMT+6.`;
+  if (base.length <= META_DESCRIPTION_LIMIT) return base;
+  return `${base.slice(0, META_DESCRIPTION_LIMIT - 1).trimEnd()}…`;
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -67,7 +80,11 @@ export function postContent(fixture: NormalizedFixture, previewText?: string | n
   const score = fixture.scoreSummary ? `<p><strong>Match status:</strong> ${fixture.scoreSummary}</p>` : `<p><strong>Match status:</strong> ${fixture.status}</p>`;
   const preview = previewText ? `<h2>Match Preview</h2><p>${escapeHtml(previewText)}</p>` : "";
   const source = fixture.matchUrl ? `<p><a href="${fixture.matchUrl}" rel="nofollow noopener">View match details</a></p>` : "";
-  return `<article class="cricket-match-post" ${postMarker(fixture)}><script type="application/ld+json">${JSON.stringify(structuredData)}</script><h1>${fixture.teamOne} vs ${fixture.teamTwo}</h1><p><strong>Tournament:</strong> ${fixture.tournamentName}</p><p><strong>Start time:</strong> ${fixture.localDateGmt6} at ${fixture.localTimeGmt6} GMT+6</p><p><strong>Venue:</strong> ${fixture.venue}</p>${score}${preview}${source}<p>Follow Watch Now Cricket for the latest fixture updates and match status.</p></article>`;
+  // No <h1> here: the theme already renders the Blogger post title (from
+  // postTitle()) as the page's single <h1> on the post's own permalink page.
+  // Repeating the matchup as a second in-body <h1> just creates competing
+  // headings on the same page, which hurts on-page SEO relevance.
+  return `<article class="cricket-match-post" ${postMarker(fixture)}><script type="application/ld+json">${JSON.stringify(structuredData)}</script><p><strong>Tournament:</strong> ${fixture.tournamentName}</p><p><strong>Start time:</strong> ${fixture.localDateGmt6} at ${fixture.localTimeGmt6} GMT+6</p><p><strong>Venue:</strong> ${fixture.venue}</p>${score}${preview}${source}<p>Follow Watch Now Cricket for the latest fixture updates and match status.</p></article>`;
 }
 
 export function fixtureMarker(fixture: NormalizedFixture) {
@@ -118,18 +135,19 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
       }
       const title = postTitle(effective);
       const content = postContent(effective, previewText);
+      const searchDescription = postSearchDescription(effective, previewText);
       const labels = ["Cricket", effective.tournamentName, effective.localDateGmt6];
       const reconciledPost = saved.bloggerPostId ? null : await findBloggerPostByMarker(fixtureMarker(effective), settings.googleRefreshToken!);
       if (saved.bloggerPostId || reconciledPost) {
         const postId = saved.bloggerPostId ?? reconciledPost!.id;
-        const result = await updateBloggerPost(postId, title, content, labels, settings.googleRefreshToken!);
+        const result = await updateBloggerPost(postId, title, content, labels, settings.googleRefreshToken!, searchDescription);
         bloggerStatusCode = result.statusCode;
         if (reconciledPost && !saved.bloggerPostId) await saveBloggerPublication(saved.id, result.post.id, result.post.url ?? reconciledPost.url ?? null);
         if (result.post.url) postUrls.push(result.post.url);
         boardRows.push({ fixture: effective, postUrl: result.post.url ?? reconciledPost?.url ?? null });
         postsUpdated += 1;
       } else {
-        const result = await createBloggerPost(title, content, labels, settings.googleRefreshToken!);
+        const result = await createBloggerPost(title, content, labels, settings.googleRefreshToken!, searchDescription);
         bloggerStatusCode = result.statusCode;
         await saveBloggerPublication(saved.id, result.post.id, result.post.url ?? null);
         if (result.post.url) postUrls.push(result.post.url);

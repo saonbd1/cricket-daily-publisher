@@ -7,6 +7,33 @@
   <meta content='index,follow' name='robots'/>
   <title><data:blog.pageTitle/></title>
   <b:include data='blog' name='all-head-content'/>
+  <!-- Open Graph / Twitter Card tags: Blogger's all-head-content does not add these on
+       custom themes, so shares (WhatsApp, Facebook, X, Telegram) had no title/description/
+       preview without this. Uses the per-post search description set via the Blogger API
+       (falls back to the blog description on non-post pages). -->
+  <b:if cond='data:view.isPost'>
+    <meta expr:content='data:post.title' property='og:title'/>
+    <meta expr:content='data:post.title' name='twitter:title'/>
+    <meta expr:content='data:post.url' property='og:url'/>
+    <meta content='article' property='og:type'/>
+    <b:if cond='data:post.metaDescription'>
+      <meta expr:content='data:post.metaDescription' name='description'/>
+      <meta expr:content='data:post.metaDescription' property='og:description'/>
+      <meta expr:content='data:post.metaDescription' name='twitter:description'/>
+    <b:else/>
+      <meta expr:content='data:post.snippet' property='og:description'/>
+      <meta expr:content='data:post.snippet' name='twitter:description'/>
+    </b:if>
+  <b:else/>
+    <meta expr:content='data:blog.pageTitle' property='og:title'/>
+    <meta expr:content='data:blog.homepageUrl' property='og:url'/>
+    <meta content='website' property='og:type'/>
+    <meta expr:content='data:blog.description' property='og:description'/>
+    <meta expr:content='data:blog.description' name='twitter:description'/>
+    <meta expr:content='data:blog.title' name='twitter:title'/>
+  </b:if>
+  <meta expr:content='data:blog.title' property='og:site_name'/>
+  <meta content='summary' name='twitter:card'/>
   <b:skin><![CDATA[
     :root{--ink:#061321;--panel:#0b2035;--panel-2:#102d48;--line:rgba(124,183,211,.24);--text:#f5fbff;--muted:#9fb5c7;--cyan:#55d6e8;--gold:#f2c66d;--max:1180px}
     *{box-sizing:border-box}
@@ -56,7 +83,16 @@
     <header class='site-header'>
       <nav aria-label='Primary navigation' class='site-nav'><a href='/'>Home</a><a href='https://cricket-daily-publisher.vercel.app/api/board'>Fixture Board</a><a href='/search/label/Cricket'>Tournaments</a></nav>
       <p class='eyebrow'>Watch Now Cricket</p>
-      <h1 class='site-title'><data:blog.title/></h1>
+      <!-- On an individual post's own page, that post's title is the page's real
+           topic and should be the single <h1> (see the post includable below), so
+           the site-wide brand name here steps down to a <p> to avoid two competing
+           <h1>s on the same page. It stays the page's <h1> everywhere else
+           (homepage, label/tournament pages, the fixture board page). -->
+      <b:if cond='data:view.isPost'>
+        <p class='site-title'><data:blog.title/></p>
+      <b:else/>
+        <h1 class='site-title'><data:blog.title/></h1>
+      </b:if>
       <p class='site-description'><data:blog.description/></p>
     </header>
     <div class='live-date'>Live date <strong id='cricket-live-date-value'>Loading date...</strong></div>
@@ -82,7 +118,15 @@
           <b:includable id='post' var='post'>
             <article class='post-card'>
               <header class='post-header'>
-                <h2 class='post-title'><a expr:href='data:post.url'><data:post.title/></a></h2>
+                <!-- One <h1> per page: on this post's own permalink page its title
+                     IS the page topic, so it's the <h1>; everywhere it's listed
+                     alongside other posts (homepage, labels) it stays <h2> so a
+                     listing page never ends up with several <h1>s. -->
+                <b:if cond='data:view.isPost'>
+                  <h1 class='post-title'><data:post.title/></h1>
+                <b:else/>
+                  <h2 class='post-title'><a expr:href='data:post.url'><data:post.title/></a></h2>
+                </b:if>
                 <div class='post-meta'><data:post.timestamp/></div>
               </header>
               <div class='post-body'><data:post.body/></div>

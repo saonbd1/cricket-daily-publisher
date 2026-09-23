@@ -97,14 +97,18 @@ export async function findBloggerPostByMarker(marker: string, refreshToken: stri
   return findMatchingBloggerPost(response.body.items, marker);
 }
 
-export async function createBloggerPost(title: string, content: string, labels: string[], refreshToken: string) {
+export async function createBloggerPost(title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string) {
   const settings = await getStoredBloggerSettings();
-  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/`, { method: "POST", body: JSON.stringify({ title, content, labels }) }, refreshToken);
+  const body: Record<string, unknown> = { title, content, labels };
+  if (searchDescription) body.searchDescription = searchDescription;
+  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/`, { method: "POST", body: JSON.stringify(body) }, refreshToken);
   return { post: response.body, statusCode: response.statusCode };
 }
 
-export async function updateBloggerPost(postId: string, title: string, content: string, labels: string[], refreshToken: string) {
+export async function updateBloggerPost(postId: string, title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string) {
   const settings = await getStoredBloggerSettings();
-  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/${encodeURIComponent(postId)}`, { method: "PUT", body: JSON.stringify({ id: postId, title, content, labels }) }, refreshToken);
+  const body: Record<string, unknown> = { id: postId, title, content, labels };
+  if (searchDescription) body.searchDescription = searchDescription;
+  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/${encodeURIComponent(postId)}`, { method: "PUT", body: JSON.stringify(body) }, refreshToken);
   return { post: response.body, statusCode: response.statusCode };
 }

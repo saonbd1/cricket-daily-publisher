@@ -3,7 +3,7 @@ import { invokeLLM } from "../_core/llm.js";
 import type { NormalizedFixture } from "./normalization.js";
 import type { TextContent, ImageContent, FileContent } from "../_core/llm.js";
 
-const MAX_PREVIEW_WORDS = 70;
+const MAX_PREVIEW_WORDS = 130;
 
 export type PreviewFixtureInput = Pick<
   NormalizedFixture,
@@ -17,12 +17,15 @@ const SYSTEM_PROMPT =
 
 function buildPrompt(fixture: PreviewFixtureInput) {
   return [
-    "Write a short preview for this cricket fixture.",
+    "Write a preview paragraph for this cricket fixture, aimed at a fan checking the day's match schedule.",
     "Rules:",
-    "- 2 to 3 sentences, plain text only, no markdown, no headings, no hashtags, no emoji.",
-    "- Mention both teams, the tournament, and the venue naturally.",
-    "- Do not invent facts that are not listed below (no scores, players, stats, weather, or history).",
-    "- Do not predict a winner and do not mention betting or odds.",
+    "- Write 3 to 4 full sentences (one solid paragraph, roughly 70-110 words), plain text only, no markdown, no headings, no hashtags, no emoji.",
+    "- Sentence 1: introduce the matchup — both teams, the tournament, and the venue.",
+    "- Sentence 2: note the scheduled date/time and what a fan can expect to follow (live score, match updates).",
+    "- Sentence 3 (and 4 if useful): general, non-speculative context about the occasion — e.g. the format of the tournament, why the fixture matters to the competition, or an invitation to follow along — using only the details provided.",
+    "- Do not invent facts that are not listed below: no scores, player names, statistics, weather, team form, or head-to-head history.",
+    "- Do not predict a winner, mention betting, or use odds.",
+    "- Do not pad with generic filler sentences that repeat the same fact twice.",
     "",
     `Team 1: ${fixture.teamOne}`,
     `Team 2: ${fixture.teamTwo}`,
@@ -63,7 +66,10 @@ export async function generateMatchPreview(fixture: PreviewFixtureInput): Promis
   try {
     const result = await invokeLLM({
       model: ENV.matchPreviewModel || undefined,
-      maxTokens: 220,
+      // openai/gpt-oss-* models on Groq spend some of maxTokens on hidden
+      // reasoning before the visible answer, so budget well above the ~150
+      // tokens the visible paragraph needs to avoid truncation.
+      maxTokens: 500,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: buildPrompt(fixture) },
