@@ -3,7 +3,7 @@ import { normalizeFixture, type NormalizedFixture, type ProviderFixture } from "
 
 const API_BASE = "https://api.cricapi.com/v1";
 const PAGE_SIZE = 25;
-const MAX_PAGES = 12;
+const MAX_PAGES = 30;
 
 type CricketDataResponse = {
   status?: string;
