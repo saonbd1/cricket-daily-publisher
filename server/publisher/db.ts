@@ -136,6 +136,7 @@ export async function saveBloggerPublication(
   postId: string,
   postUrl: string | null,
   firstPublishedAt?: Date,
+  contentHash?: string,
 ) {
   await supabaseRest<Fixture[]>("fixtures", {
     method: "PATCH",
@@ -143,12 +144,33 @@ export async function saveBloggerPublication(
     body: {
       bloggerPostId: postId,
       bloggerPostUrl: postUrl,
+      ...(contentHash ? { bloggerContentHash: contentHash } : {}),
       firstPublishedAt: firstPublishedAt?.toISOString() ?? new Date().toISOString(),
       lastPublishedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
     prefer: "return=representation",
   });
+}
+
+// The homepage fixture board is rebuilt from this — the actual set of
+// fixtures the database currently knows have a live Blogger post and fall in
+// the publishing window — rather than from whatever happened to be fetched
+// and successfully looped over in one particular run. That way a run that
+// fails partway through (a Blogger quota error, a bad fixture, etc.) still
+// leaves the homepage reflecting everything that's genuinely been published,
+// instead of freezing on the last run that completed start-to-finish.
+export async function listPublishedUpcomingFixtures(windowStartIso: string, windowEndIso: string): Promise<FixtureWithTournament[]> {
+  const rows = await supabaseRest<Array<Fixture & { tournament?: Tournament }>>("fixtures", {
+    query: {
+      select: "*,tournament:tournaments(*)",
+      bloggerPostId: "not.is.null",
+      or: `(status.eq.live,and(startTimeUtc.gte.${windowStartIso},startTimeUtc.lte.${windowEndIso}))`,
+      order: "startTimeUtc.asc",
+      limit: 500,
+    },
+  });
+  return rows.flatMap((row) => (row.tournament ? [{ fixture: row, tournament: row.tournament }] : []));
 }
 
 export async function listVerificationQueue(_limit = 100) {

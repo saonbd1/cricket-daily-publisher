@@ -1,0 +1,11 @@
+-- Run this against the Supabase SQL editor, same as the previous migrations in
+-- this folder (0007 etc.) — these files are not executed automatically.
+--
+-- Stores a hash of each fixture's last-published Blogger content (title +
+-- body + search description). The publisher compares this against the
+-- content it's about to send on each run, and skips the Blogger API call
+-- entirely when nothing actually changed — most scheduled, unstarted
+-- fixtures don't change run to run, so this cuts the majority of repeat
+-- Blogger API calls that were hitting the 429 "Resource has been exhausted"
+-- quota error.
+ALTER TABLE "fixtures" ADD COLUMN IF NOT EXISTS "bloggerContentHash" varchar(64);

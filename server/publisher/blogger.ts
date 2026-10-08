@@ -46,26 +46,53 @@ async function exchangeCode(code: string, redirectUri: string) {
   return body;
 }
 
+// Every Blogger API call needs an access token, and without caching, each one
+// triggers its own round trip to Google's token endpoint — extra latency and
+// an extra point of failure on every single call in a run. Google's access
+// tokens are valid for ~1 hour, far longer than a run takes, so cache it
+// in-process and only refresh when it's missing or about to expire.
+let cachedAccessToken: { token: string; refreshToken: string; expiresAt: number } | null = null;
+
 async function getAccessToken(refreshToken: string) {
+  if (cachedAccessToken && cachedAccessToken.refreshToken === refreshToken && cachedAccessToken.expiresAt > Date.now()) {
+    return cachedAccessToken.token;
+  }
   requireOAuthConfig();
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: ENV.googleClientId, client_secret: ENV.googleClientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
   });
-  const body = await response.json() as { access_token?: string; error?: string };
+  const body = await response.json() as { access_token?: string; expires_in?: number; error?: string };
   if (!response.ok || !body.access_token) throw new Error(`Google refresh failed: ${body.error ?? response.status}`);
+  // Refresh a little early (60s of slack) rather than cutting it exactly at expiry.
+  const ttlMs = Math.max((body.expires_in ?? 3600) - 60, 60) * 1000;
+  cachedAccessToken = { token: body.access_token, refreshToken, expiresAt: Date.now() + ttlMs };
   return body.access_token;
 }
 
-async function bloggerRequest<T>(path: string, init: RequestInit, refreshToken: string) {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function bloggerRequest<T>(path: string, init: RequestInit, refreshToken: string, attempt = 1): Promise<{ body: T; statusCode: number }> {
   const accessToken = await getAccessToken(refreshToken);
   const response = await fetch(`${BLOGGER_API}${path}`, {
     ...init,
     headers: { accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`, ...(init.headers ?? {}) },
   });
   const body = await response.json() as T & { error?: { message?: string } };
-  if (!response.ok) throw new Error(`Blogger request failed (${response.status}): ${body.error?.message ?? "unknown error"}`);
+  if (!response.ok) {
+    // Blogger's quota errors (429) are usually a short burst limit, not a hard
+    // daily cap — one bounded retry after a short wait recovers most of them
+    // without piling on extra calls. Anything else, or a repeat 429, fails
+    // immediately so the caller can move on to the next fixture.
+    if (response.status === 429 && attempt === 1) {
+      await sleep(3000);
+      return bloggerRequest<T>(path, init, refreshToken, attempt + 1);
+    }
+    throw new Error(`Blogger request failed (${response.status}): ${body.error?.message ?? "unknown error"}`);
+  }
   return { body, statusCode: response.status };
 }
 
