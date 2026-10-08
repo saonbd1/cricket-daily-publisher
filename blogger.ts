@@ -1,0 +1,141 @@
+import crypto from "node:crypto";
+import { ENV } from "../_core/env.js";
+import { getOrCreateSettings, saveBloggerCredentials } from "./db.js";
+
+const BLOGGER_SCOPE = "https://www.googleapis.com/auth/blogger";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const BLOGGER_API = "https://www.googleapis.com/blogger/v3";
+
+function requireOAuthConfig() {
+  if (!ENV.googleClientId || !ENV.googleClientSecret) throw new Error("Google OAuth client settings are not configured");
+}
+
+export function createOAuthState() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+export function getBloggerAuthorizationUrl(state: string, redirectUri: string) {
+  requireOAuthConfig();
+  const params = new URLSearchParams({
+    client_id: ENV.googleClientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    access_type: "offline",
+    prompt: "consent",
+    scope: BLOGGER_SCOPE,
+    state,
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+async function exchangeCode(code: string, redirectUri: string) {
+  requireOAuthConfig();
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: ENV.googleClientId,
+      client_secret: ENV.googleClientSecret,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+  const body = await response.json() as { access_token?: string; refresh_token?: string; error?: string };
+  if (!response.ok || !body.access_token || !body.refresh_token) throw new Error(`Google token exchange failed: ${body.error ?? response.status}`);
+  return body;
+}
+
+// Every Blogger API call needs an access token, and without caching, each one
+// triggers its own round trip to Google's token endpoint — extra latency and
+// an extra point of failure on every single call in a run. Google's access
+// tokens are valid for ~1 hour, far longer than a run takes, so cache it
+// in-process and only refresh when it's missing or about to expire.
+let cachedAccessToken: { token: string; refreshToken: string; expiresAt: number } | null = null;
+
+async function getAccessToken(refreshToken: string) {
+  if (cachedAccessToken && cachedAccessToken.refreshToken === refreshToken && cachedAccessToken.expiresAt > Date.now()) {
+    return cachedAccessToken.token;
+  }
+  requireOAuthConfig();
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: ENV.googleClientId, client_secret: ENV.googleClientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
+  });
+  const body = await response.json() as { access_token?: string; expires_in?: number; error?: string };
+  if (!response.ok || !body.access_token) throw new Error(`Google refresh failed: ${body.error ?? response.status}`);
+  // Refresh a little early (60s of slack) rather than cutting it exactly at expiry.
+  const ttlMs = Math.max((body.expires_in ?? 3600) - 60, 60) * 1000;
+  cachedAccessToken = { token: body.access_token, refreshToken, expiresAt: Date.now() + ttlMs };
+  return body.access_token;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function bloggerRequest<T>(path: string, init: RequestInit, refreshToken: string, attempt = 1): Promise<{ body: T; statusCode: number }> {
+  const accessToken = await getAccessToken(refreshToken);
+  const response = await fetch(`${BLOGGER_API}${path}`, {
+    ...init,
+    headers: { accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`, ...(init.headers ?? {}) },
+  });
+  const body = await response.json() as T & { error?: { message?: string } };
+  if (!response.ok) {
+    // Blogger's quota errors (429) are usually a short burst limit, not a hard
+    // daily cap — one bounded retry after a short wait recovers most of them
+    // without piling on extra calls. Anything else, or a repeat 429, fails
+    // immediately so the caller can move on to the next fixture.
+    if (response.status === 429 && attempt === 1) {
+      await sleep(3000);
+      return bloggerRequest<T>(path, init, refreshToken, attempt + 1);
+    }
+    throw new Error(`Blogger request failed (${response.status}): ${body.error?.message ?? "unknown error"}`);
+  }
+  return { body, statusCode: response.status };
+}
+
+export async function completeBloggerAuthorization(code: string, redirectUri: string) {
+  const token = await exchangeCode(code, redirectUri);
+  const refreshToken = token.refresh_token;
+  if (!refreshToken) throw new Error("Google authorization did not return a refresh token");
+  const blog = await bloggerRequest<{ id?: string; url?: string }>(`/blogs/byurl?url=${encodeURIComponent("https://watchnowcricket.blogspot.com")}&fetchUserInfo=false`, { method: "GET" }, refreshToken);
+  if (!blog.body.id) throw new Error("Google authorization succeeded, but the Watch Now Cricket blog could not be found");
+  await saveBloggerCredentials(refreshToken, blog.body.id);
+  return { blogId: blog.body.id, blogUrl: blog.body.url ?? "https://watchnowcricket.blogspot.com" };
+}
+
+export async function getStoredBloggerSettings() {
+  const settings = await getOrCreateSettings();
+  if (settings.blogId === "pending" || !settings.googleRefreshToken) throw new Error("Blogger authorization is not complete");
+  return settings;
+}
+
+export type BloggerPost = { id: string; url?: string; title?: string; content?: string };
+
+export function findMatchingBloggerPost(items: BloggerPost[] | undefined, marker: string) {
+  return items?.find(item => item.content?.includes(marker)) ?? null;
+}
+
+export async function findBloggerPostByMarker(marker: string, refreshToken: string) {
+  const settings = await getStoredBloggerSettings();
+  const response = await bloggerRequest<{ items?: BloggerPost[] }>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/search?q=${encodeURIComponent(marker)}&fetchBodies=true`, { method: "GET" }, refreshToken);
+  return findMatchingBloggerPost(response.body.items, marker);
+}
+
+export async function createBloggerPost(title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string) {
+  const settings = await getStoredBloggerSettings();
+  const body: Record<string, unknown> = { title, content, labels };
+  if (searchDescription) body.searchDescription = searchDescription;
+  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/`, { method: "POST", body: JSON.stringify(body) }, refreshToken);
+  return { post: response.body, statusCode: response.statusCode };
+}
+
+export async function updateBloggerPost(postId: string, title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string) {
+  const settings = await getStoredBloggerSettings();
+  const body: Record<string, unknown> = { id: postId, title, content, labels };
+  if (searchDescription) body.searchDescription = searchDescription;
+  const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/${encodeURIComponent(postId)}`, { method: "PUT", body: JSON.stringify(body) }, refreshToken);
+  return { post: response.body, statusCode: response.statusCode };
+}
