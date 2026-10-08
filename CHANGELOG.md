@@ -4,7 +4,34 @@ Hand-maintained log of the issues found and fixes made to the publisher and
 Blogger theme, in plain language. Newest first. (This starts from when match
 previews were added — earlier history is in the git log.)
 
-## Unreleased — 2026-10-06
+## 2026-10-08 — CricketData paging was timing out whole runs
+
+**Issue:** Scheduled runs on Oct 5, 6 and 7, and a manual run on Oct 8, all
+died silently — stuck at `status: "running"` forever, `fixturesFetched: 0`,
+no error recorded. Root cause: the Oct 4 change that raised CricketData's
+`MAX_PAGES` from 12 to 30 made `fetchFixtures()` do up to 30 *sequential*
+network round-trips (one page at a time, awaited one after another) before
+the run had published anything at all. That alone was enough to exceed
+Vercel's 60-second function limit. When Vercel kills a function for running
+too long, it's a hard infrastructure-level kill — the code's own try/catch
+never runs, so the run never got marked "failed"; it just sat there as
+"running" indefinitely. This was unrelated to the board-rebuild/429 fix
+below; it was breaking runs before they ever reached that code.
+
+**Fix:** `fetchFixtures()` (`server/publisher/cricketdata.ts`) now fetches
+pages in parallel batches of 5 instead of one at a time, stopping as soon as
+any page in a batch comes back short (the real end of the data). Worst-case
+wall time drops roughly 5x for the same page depth. `MAX_PAGES` also pulled
+back from 30 to 20, as a second margin — the Asian Games investigation
+already established that paging deeper doesn't actually surface that
+tournament (CricketData simply doesn't carry it), so there was no upside to
+accepting the extra risk of the higher number.
+
+**Cleanup:** manually marked the 4 orphaned "running" rows (ids 75, 77, 78,
+79) as `failed` in the database so they stop showing as perpetually in
+progress in the dashboard's run history.
+
+## 2026-10-08 — Stale homepage board and Blogger 429 crashes
 
 **Issue:** The homepage "Daily Cricket Fixture Board" table could go stale
 for days while new match posts kept publishing normally. Cause: the board
