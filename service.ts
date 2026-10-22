@@ -219,7 +219,7 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
       const boardTitle = "Daily Cricket Fixture Board";
       const boardHtml = boardContent(boardRows);
       if (existingBoard) {
-        const boardResult = await updateBloggerPost(existingBoard.id, boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!);
+        const boardResult = await updateBloggerPost(existingBoard.id, boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!, undefined, new Date().toISOString());
         bloggerStatusCode = boardResult.statusCode;
         const boardUrl = boardResult.post.url ?? existingBoard.url;
         if (boardUrl) {

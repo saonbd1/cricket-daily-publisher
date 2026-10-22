@@ -132,10 +132,13 @@ export async function createBloggerPost(title: string, content: string, labels: 
   return { post: response.body, statusCode: response.statusCode };
 }
 
-export async function updateBloggerPost(postId: string, title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string) {
+export async function updateBloggerPost(postId: string, title: string, content: string, labels: string[], refreshToken: string, searchDescription?: string, published?: string) {
   const settings = await getStoredBloggerSettings();
   const body: Record<string, unknown> = { id: postId, title, content, labels };
   if (searchDescription) body.searchDescription = searchDescription;
+  // Blogger lists posts newest-published first. Bumping the board's published
+  // time keeps it first on the homepage (the theme shows only that post).
+  if (published) body.published = published;
   const response = await bloggerRequest<BloggerPost>(`/blogs/${encodeURIComponent(settings.blogId)}/posts/${encodeURIComponent(postId)}`, { method: "PUT", body: JSON.stringify(body) }, refreshToken);
   return { post: response.body, statusCode: response.statusCode };
 }
