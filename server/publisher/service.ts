@@ -111,8 +111,20 @@ function boardContent(rows: BoardRow[]) {
 // short-burst rate limit rather than relying only on the 429 retry below.
 const BLOGGER_WRITE_GAP_MS = 300;
 
+// Vercel kills the function outright at 60s (no catch block runs, the run
+// stays "running" forever, and the homepage board is never rebuilt). So stop
+// starting new fixtures after this budget; whatever is left is picked up by
+// the next run, and the board rebuild below always gets time to run.
+const RUN_BUDGET_MS = 38_000;
+// Preview generation is an LLM call (slow, and it fails often enough to be
+// retried every run), so cap how many a single run may attempt.
+const MAX_PREVIEWS_PER_RUN = 3;
+
 export async function runPublisher(trigger: "scheduled" | "manual") {
+  const runStartedAt = Date.now();
   const runId = await createRun(trigger);
+  let postsDeferred = 0;
+  let previewAttempts = 0;
   let fixturesFetched = 0;
   let postsCreated = 0;
   let postsUpdated = 0;
@@ -136,7 +148,14 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
     const reconciled = reconcileFixtures(primaryCandidates, secondaryFixtures);
     fixturesFetched = reconciled.fixtures.length;
 
-    for (const normalized of reconciled.fixtures) {
+    // Soonest matches first, so if the time budget runs out it's the ones
+    // furthest in the future that wait for the next run.
+    const ordered = [...reconciled.fixtures].sort((a, b) => a.startTimeUtc.getTime() - b.startTimeUtc.getTime());
+    for (const normalized of ordered) {
+      if (Date.now() - runStartedAt > RUN_BUDGET_MS) {
+        postsDeferred += 1;
+        continue;
+      }
       // A single fixture failing (a Blogger quota error, a bad response,
       // anything) must never take the whole run down with it — every other
       // fixture still gets its turn, and the board rebuild below still runs
@@ -150,7 +169,8 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
         if (!isPublishable(effective)) continue;
 
         let previewText = saved.previewText ?? null;
-        if (!previewText) {
+        if (!previewText && previewAttempts < MAX_PREVIEWS_PER_RUN) {
+          previewAttempts += 1;
           const generated = await generateMatchPreview(effective);
           if (generated) {
             previewText = generated;
@@ -219,7 +239,7 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
       const boardTitle = "Daily Cricket Fixture Board";
       const boardHtml = boardContent(boardRows);
       if (existingBoard) {
-        const boardResult = await updateBloggerPost(existingBoard.id, boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!);
+        const boardResult = await updateBloggerPost(existingBoard.id, boardTitle, boardHtml, ["Cricket", "homepage-board"], settings.googleRefreshToken!, undefined, new Date().toISOString());
         bloggerStatusCode = boardResult.statusCode;
         const boardUrl = boardResult.post.url ?? existingBoard.url;
         if (boardUrl) {
@@ -241,10 +261,10 @@ export async function runPublisher(trigger: "scheduled" | "manual") {
     const coverageMessage = coverage.map((row) => `${row.date}:primary=${row.primary},secondary=${row.secondary}`).join(";");
     const failureMessage = fixtureErrors.length ? `; failures(${fixtureErrors.length}): ${fixtureErrors.slice(0, 5).join(" | ")}` : "";
     const boardMessage = boardRebuildError ? `; board rebuild FAILED: ${boardRebuildError}` : "; board rebuilt from database";
-    const verificationMessage = `verification: verified=${effectiveVerified}, candidates=${effectiveCandidates}, conflicts=${effectiveConflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}; posts: created=${postsCreated}, updated=${postsUpdated}, skipped(unchanged)=${postsSkipped}, failed=${postsFailed}${boardMessage}${failureMessage}`;
-    const finalStatus = postsFailed > 0 || boardRebuildError || effectiveCandidates > 0 || effectiveConflicts > 0 ? "partial" : "success";
+    const verificationMessage = `verification: verified=${effectiveVerified}, candidates=${effectiveCandidates}, conflicts=${effectiveConflicts}, cricketdataPages=${source.pagesFetched}; coverage: ${coverageMessage}; posts: created=${postsCreated}, updated=${postsUpdated}, skipped(unchanged)=${postsSkipped}, failed=${postsFailed}, deferred(time budget)=${postsDeferred}${boardMessage}${failureMessage}`;
+    const finalStatus = postsFailed > 0 || postsDeferred > 0 || boardRebuildError || effectiveCandidates > 0 || effectiveConflicts > 0 ? "partial" : "success";
     await finishRun(runId, { status: finalStatus, fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: verificationMessage });
-    return { runId, status: finalStatus as "success" | "partial", fixturesFetched, postsCreated, postsUpdated, postsSkipped, postsFailed, verification: { ...reconciled, verified: effectiveVerified, candidates: effectiveCandidates, conflicts: effectiveConflicts } };
+    return { runId, status: finalStatus as "success" | "partial", fixturesFetched, postsCreated, postsUpdated, postsSkipped, postsFailed, postsDeferred, verification: { ...reconciled, verified: effectiveVerified, candidates: effectiveCandidates, conflicts: effectiveConflicts } };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await finishRun(runId, { status: fixturesFetched > 0 ? "partial" : "failed", fixturesFetched, postsCreated, postsUpdated, apiStatusCode, bloggerStatusCode, postUrls: JSON.stringify(postUrls), errorMessage: message });

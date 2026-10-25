@@ -64,7 +64,8 @@ function sanitize(raw: string) {
 export async function generateMatchPreview(fixture: PreviewFixtureInput): Promise<string | null> {
   if (!ENV.forgeApiKey) return null;
   try {
-    const result = await invokeLLM({
+    // Never let a slow LLM call eat the run's time budget.
+    const result = await Promise.race([invokeLLM({
       model: ENV.matchPreviewModel || undefined,
       // openai/gpt-oss-* models on Groq spend some of maxTokens on hidden
       // reasoning before the visible answer, so budget well above the ~150
@@ -74,7 +75,7 @@ export async function generateMatchPreview(fixture: PreviewFixtureInput): Promis
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: buildPrompt(fixture) },
       ],
-    });
+    }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error("preview generation timed out")), 8000))]);
     const raw = result.choices?.[0]?.message?.content;
     if (!raw) return null;
     const text = sanitize(extractText(raw));
